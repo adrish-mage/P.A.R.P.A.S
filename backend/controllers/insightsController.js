@@ -1,8 +1,21 @@
 const matchingClient = require("../services/matchingClient");
-
+const {generateSkillGap} = require("../services/skillGapService");
+const {generateGrowthMap,} = require("../services/growthMapService");
 async function skillGap(req, res) {
-  const result = await matchingClient.getSkillGap(req.body);
-  return res.status(200).json(result);
+  try {
+    const { careerRoleId } = req.body;
+    if (!careerRoleId) {
+      return res.status(400).json({
+        message: "careerRoleId is required",
+      });
+    }
+    const result = await generateSkillGap({userId: req.user.id, careerRoleId,});
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({
+      message: err.message,
+    });
+  }
 }
 
 async function placementInsights(req, res) {
@@ -11,8 +24,23 @@ async function placementInsights(req, res) {
 }
 
 async function growthMapRecommend(req, res) {
-  const result = await matchingClient.getGrowthMapRecommendations(req.body);
-  return res.status(200).json(result);
+  try {
+    const { careerRoleId } = req.body;
+    if (!careerRoleId) {
+      return res.status(400).json({
+        message: "careerRoleId is required",
+      });
+    }
+    const result = await generateGrowthMap({
+      userId: req.user.id,
+      careerRoleId,
+    });
+    return res.status(201).json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({
+      message: err.message,
+    });
+  }
 }
 
 async function resumeParse(req, res) {
