@@ -20,14 +20,15 @@ async function getSkillGap(payload) {
 }
 
 async function getPlacementInsights(payload) {
-  return safePost("/placement-insights", payload, { predictedPlacementRate: null, topSkillGaps: [], note: "Python intelligence service not configured" });
-}
+  return safePost("/placement-insights", payload, {predictedPlacementRate: null, topSkillGaps: [], note: "Python intelligence service not configured",});}
+
+async function parseDocument(payload) {
+  return safePost("/resume-parse", payload, {extractedSkillNames: [], note: "Python intelligence service not configured",});}
+
+async function getIntelligentMatching(payload) {
+  return safePost("/match", payload, {matches: [], note: "Python intelligence service not configured",});}
 
 async function getGrowthMapRecommendations(payload) {
   return safePost("/growth-map/recommend", payload, {skillGaps: [], recommendations: [], note: "Python intelligence service not configured",});}
 
-async function parseDocument(payload) {
-  return safePost("/resume-parse", payload, { extractedSkillNames: [], note: "Python intelligence service not configured" });
-}
-
-module.exports = { getSkillGap, getPlacementInsights, getGrowthMapRecommendations, parseDocument };
+module.exports = { getSkillGap, getPlacementInsights, getGrowthMapRecommendations, parseDocument, getIntelligentMatching };
