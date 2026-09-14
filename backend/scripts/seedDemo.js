@@ -6,6 +6,18 @@ const ProfessionalProfile = require("../models/ProfessionalProfile");
 const SkillProfile = require("../models/SkillProfile");
 const Institution = require("../models/Institution");
 const Organisation = require("../models/Organisation");
+const AcademicRecord = require("../models/AcademicRecord");
+const Training = require("../models/Training");
+const IndustryExperience = require("../models/IndustryExperience");
+const Project = require("../models/Project");
+const Verification = require("../models/Verification");
+const VerificationRequest = require("../models/VerificationRequest");
+const SkillEvidence = require("../models/SkillEvidence");
+const GrowthMap = require("../models/GrowthMap");
+const LearningEnrollment = require("../models/LearningEnrollment");
+const OpportunityShortlist = require("../models/OpportunityShortlist");
+const IndustryFollow = require("../models/IndustryFollow");
+const IndustryApplication = require("../models/IndustryApplication");
 const { loadDemoData } = require("../controllers/studentProfileController");
 
 function response() {
@@ -25,6 +37,34 @@ async function ensureUser({ email, name, accountType }) {
   );
 }
 
+async function removeLegacyAarav() {
+  const legacyUser = await User.findOne({ email: "aarav.sen.demo@example.com" });
+  if (!legacyUser) return;
+  const legacyProfile = await StudentProfile.findOne({ userId: legacyUser._id }).select("_id").lean();
+  if (legacyProfile) {
+    const profileFilter = { studentId: legacyProfile._id };
+    await Promise.all([
+      SkillProfile.deleteMany(profileFilter),
+      AcademicRecord.deleteMany(profileFilter),
+      Training.deleteMany(profileFilter),
+      IndustryExperience.deleteMany(profileFilter),
+      Project.deleteMany(profileFilter),
+      Verification.deleteMany(profileFilter),
+      VerificationRequest.deleteMany(profileFilter),
+      SkillEvidence.deleteMany(profileFilter),
+      GrowthMap.deleteMany(profileFilter),
+      LearningEnrollment.deleteMany(profileFilter),
+      OpportunityShortlist.deleteMany(profileFilter),
+      IndustryFollow.deleteMany(profileFilter),
+    ]);
+    await IndustryApplication.deleteMany({ studentId: legacyUser._id });
+    await StudentProfile.deleteOne({ _id: legacyProfile._id });
+  }
+  await ProfessionalProfile.deleteMany({ userId: legacyUser._id });
+  await User.deleteOne({ _id: legacyUser._id });
+  console.log("Removed legacy Aarav demo account");
+}
+
 async function run() {
   await connectDB();
 
@@ -36,6 +76,7 @@ async function run() {
     }
   }
 
+  await removeLegacyAarav();
   const studentUser = await ensureUser({ email: "aarav.sen@sih-demo.local", name: "Aarav Sen", accountType: "individual" });
   await StudentProfile.findOneAndUpdate({ userId: studentUser._id }, { $setOnInsert: { userId: studentUser._id } }, { upsert: true, new: true, setDefaultsOnInsert: true });
   const seedResponse = response();

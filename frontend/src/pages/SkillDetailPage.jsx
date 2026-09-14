@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
+import { getUserId } from "../session.js";
 
 const details = {
   python: {
@@ -46,13 +47,44 @@ export default function SkillDetailPage() {
   };
   useEffect(() => {
     const candidateId = params.get("candidateId");
-    if (!candidateId) return;
-    api.listOrganisationCandidates().then((candidates) => {
-      setCandidate(candidates.find((item) => String(item.studentId) === candidateId) || null);
+    if (candidateId) {
+      api.listOrganisationCandidates().then((candidates) => {
+        setCandidate(candidates.find((item) => String(item.studentId) === candidateId) || null);
+      }).catch(() => setCandidate(null));
+      return;
+    }
+
+    const userId = getUserId();
+    if (!userId) return;
+    Promise.all([
+      api.getCurrentUser(userId),
+      api.getStudentProfile(userId),
+      api.getSkillProfile(userId),
+      api.listAcademicRecords(userId),
+      api.listTraining(userId),
+      api.listProjects(userId),
+      api.listIndustryExperience(userId),
+    ]).then(async ([user, profile, skillProfile, academicRecords, training, projects, industryExperience]) => {
+      const institution = profile.institutionLink?.institutionId
+        ? await api.getInstitution(profile.institutionLink.institutionId).catch(() => null)
+        : null;
+      setCandidate({
+        name: user.name,
+        bio: profile.bio,
+        careerInterest: profile.careerInterest,
+        profileVisibility: profile.profileVisibility,
+        institution,
+        skills: skillProfile.skills || [],
+        academicRecords,
+        training,
+        projects,
+        industryExperience,
+      });
     }).catch(() => setCandidate(null));
   }, [params]);
 
   const candidateSkill = candidate?.skills?.find((entry) => entry.skillId?.name?.toLowerCase() === normalizedName);
+  const candidateSkillId = candidateSkill && String(candidateSkill.skillId?._id || candidateSkill.skillId);
   const candidateEvidence = candidate ? [
     { label: "Academics", records: candidate.academicRecords || [] },
     { label: "Training", records: candidate.training || [] },
@@ -63,7 +95,11 @@ export default function SkillDetailPage() {
     ...group,
     records: group.records.filter((record) => {
       const mappedSkills = record.skills || record.skillIds || [];
-      return mappedSkills.length === 0 || mappedSkills.some((entry) => entry.skillId?.name?.toLowerCase() === normalizedName);
+      return mappedSkills.length === 0 || mappedSkills.some((entry) => {
+        const mappedSkillId = String(entry.skillId?._id || entry.skillId);
+        const mappedSkillName = entry.skillId?.canonicalName || entry.skillId?.name || entry.name;
+        return mappedSkillId === candidateSkillId || mappedSkillName?.toLowerCase() === normalizedName;
+      });
     }),
   }));
   const displayStage = candidateSkill ? (candidateSkill.score >= 8 ? "Proficient" : candidateSkill.score >= 6 ? "Developing" : "Early") : skill.stage;
