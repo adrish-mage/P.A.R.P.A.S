@@ -2,6 +2,7 @@ services:
   - type: web
     name: parpas-backend
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm run seed:demo && npm start
@@ -19,6 +20,7 @@ services:
   - type: web
     name: parpas-frontend
     runtime: static
+    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
