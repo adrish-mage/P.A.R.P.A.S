@@ -16,8 +16,9 @@ services:
       - key: PYTHON_PREDICTIVE_BASE
         sync: false
 
-staticSites:
-  - name: parpas-frontend
+  - type: web
+    name: parpas-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
