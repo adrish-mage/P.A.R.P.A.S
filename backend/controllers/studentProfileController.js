@@ -179,7 +179,7 @@ async function loadDemoData(req, res) {
     for (const opportunity of opportunities) {
       await IndustryOpportunity.findOneAndUpdate(
         { organisationId: organisation._id, title: opportunity.title },
-        { $setOnInsert: { organisationId: organisation._id, title: opportunity.title, type: opportunity.type, description: opportunity.description, requiredSkills: opportunity.skills, location: "Kolkata / Remote", mode: opportunity.type === "job" ? "hybrid" : "remote", applicationDeadline: new Date("2027-12-31"), isActive: true } },
+        { $set: { description: `${opportunity.description} Work with the University of Calcutta placement technology team on a scoped deliverable, collaborate with mentors, and present measurable outcomes at the end of the engagement.`, location: "Kolkata / Remote", mode: opportunity.type === "job" ? "hybrid" : "remote", startDate: new Date("2027-01-15"), endDate: new Date("2027-06-30"), applicationDeadline: new Date("2026-12-31"), isActive: true }, $setOnInsert: { organisationId: organisation._id, title: opportunity.title, type: opportunity.type, requiredSkills: opportunity.skills } },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
     }

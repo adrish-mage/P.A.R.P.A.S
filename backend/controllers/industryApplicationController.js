@@ -1,6 +1,8 @@
 const IndustryApplication = require("../models/IndustryApplication");
 const IndustryOpportunity = require("../models/IndustryOpportunity");
 const Organisation = require("../models/Organisation");
+const StudentProfile = require("../models/StudentProfile");
+const SkillProfile = require("../models/SkillProfile");
 
 async function apply(req, res) {
   try {
@@ -9,6 +11,11 @@ async function apply(req, res) {
     if (opportunity.applicationDeadline && opportunity.applicationDeadline < new Date()) {
       return res.status(400).json({ message: "Application deadline has passed" });
     }
+    const student = await StudentProfile.findOne({ userId: req.user.id, isActive: true }).select("_id").lean();
+    const skillProfile = student && await SkillProfile.findOne({ studentId: student._id }).select("skills").lean();
+    const scores = new Map((skillProfile?.skills || []).map((skill) => [String(skill.skillId), Number(skill.score) || 0]));
+    const unmetSkill = opportunity.requiredSkills.find((required) => required.required !== false && (scores.get(String(required.skillId)) || 0) < (required.minScore || 10));
+    if (unmetSkill) return res.status(403).json({ message: "You do not meet the minimum skill score for this opportunity" });
     const application = await IndustryApplication.create({
       studentId: req.user.id,
       industryOpportunityId: opportunity._id,

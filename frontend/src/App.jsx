@@ -11,6 +11,7 @@ import RecruiterPortal from "./pages/RecruiterPortal.jsx";
 import OrganisationPortal from "./pages/OrganisationPortal.jsx";
 import SkillDetailPage from "./pages/SkillDetailPage.jsx";
 import ReadOnlyCandidatePage from "./pages/ReadOnlyCandidatePage.jsx";
+import OpportunityDetailPage from "./pages/OpportunityDetailPage.jsx";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/evidence" element={<EvidenceVerification />} />
         <Route path="/recruiter" element={<RecruiterPortal />} />
         <Route path="/candidate/:studentId" element={<ReadOnlyCandidatePage />} />
+        <Route path="/opportunity/:opportunityId" element={<OpportunityDetailPage />} />
         <Route path="/skill/:skillName" element={<SkillDetailPage />} />
       </Routes>
     </>

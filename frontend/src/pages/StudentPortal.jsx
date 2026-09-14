@@ -437,7 +437,7 @@ function IndustryOpportunitySection({ userId }) {
         return (
           <div className="opportunity-result" key={opportunity._id}>
             <span>
-              <strong>{opportunity.title}</strong>
+              <Link className="opportunity-title-link" to={`/opportunity/${opportunity._id}`}>{opportunity.title}</Link>
               <br />
               <small>{opportunity.organisationId?.name || "Organisation"} · <span className="opportunity-type">{opportunity.type === "job" ? "Full-time role" : opportunity.type}</span> · {opportunity.mode || "Mode not set"}</small>
               {matchingSkills.length > 0 && <div className="matched-skill-list">{matchingSkills.map((skill) => <span key={String(skill.skillId?._id || skill.skillId)}>{skill.skillId?.name || "Matched skill"}</span>)}</div>}
