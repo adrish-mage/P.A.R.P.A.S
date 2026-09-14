@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 
 const details = {
@@ -28,8 +28,7 @@ const details = {
 };
 
 export default function SkillDetailPage() {
-  const navigate = useNavigate();
-  const { location } = useLocation();
+  const location = useLocation();
   const { skillName = "python" } = useParams();
   const [params] = useSearchParams();
   const [candidate, setCandidate] = useState(null);
@@ -68,7 +67,6 @@ export default function SkillDetailPage() {
     }),
   }));
   const displayStage = candidateSkill ? (candidateSkill.score >= 8 ? "Proficient" : candidateSkill.score >= 6 ? "Developing" : "Early") : skill.stage;
-  const previousLabel = location.state?.fromLabel || (params.get("candidateId") ? "Candidate Analysis" : "Previous Page");
   return (
     <div className="skill-detail-page">
       <div className="skill-detail-shell">

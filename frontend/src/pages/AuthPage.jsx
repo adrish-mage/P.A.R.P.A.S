@@ -57,13 +57,6 @@ export default function AuthPage() {
         accountType: mode,
       });
       setSession({ userId: user._id, accountType: user.accountType });
-      if (mode === "Student" && /aarav\s+sen/i.test(form.fullName || user.name)) {
-        try {
-          await api.loadStudentDemoData();
-        } catch (_) {
-          // Ignore demo-data bootstrapping errors so the flow still opens the profile page.
-        }
-      }
       navigate(mode === "Student" ? "/portal/student" : "/portal/professional");
     } catch (err) {
       setError(err.status === 409 ? err.message : err.message || "Unable to continue. Check your details and try again.");
