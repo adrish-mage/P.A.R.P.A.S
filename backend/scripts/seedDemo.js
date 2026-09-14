@@ -3,6 +3,7 @@ const connectDB = require("../config/db");
 const User = require("../models/User");
 const StudentProfile = require("../models/StudentProfile");
 const ProfessionalProfile = require("../models/ProfessionalProfile");
+const SkillProfile = require("../models/SkillProfile");
 const Institution = require("../models/Institution");
 const Organisation = require("../models/Organisation");
 const { loadDemoData } = require("../controllers/studentProfileController");
@@ -26,6 +27,14 @@ async function ensureUser({ email, name, accountType }) {
 
 async function run() {
   await connectDB();
+
+  const skillProfileIndexes = await SkillProfile.collection.listIndexes().toArray();
+  for (const index of skillProfileIndexes) {
+    if (index.name === "userId_1" || index.key?.userId) {
+      await SkillProfile.collection.dropIndex(index.name);
+      console.log(`Removed legacy SkillProfile index ${index.name}`);
+    }
+  }
 
   const studentUser = await ensureUser({ email: "aarav.sen@sih-demo.local", name: "Aarav Sen", accountType: "individual" });
   await StudentProfile.findOneAndUpdate({ userId: studentUser._id }, { $setOnInsert: { userId: studentUser._id } }, { upsert: true, new: true, setDefaultsOnInsert: true });
