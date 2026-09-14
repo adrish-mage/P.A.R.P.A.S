@@ -2,12 +2,14 @@ const crypto = require("crypto");
 const Verification = require("../models/Verification");
 const VerificationRequest = require("../models/VerificationRequest");
 const StudentProfile = require("../models/StudentProfile");
+const Training = require("../models/Training");
 const ProfessionalProfile = require("../models/ProfessionalProfile");
 const Institution = require("../models/Institution");
 const Organisation = require("../models/Organisation");
 
 const ENTRY_MODELS = {
   Project: require("../models/Project"),
+  Training,
   SkillEvidence: require("../models/SkillEvidence"),
 };
 
@@ -18,8 +20,8 @@ function createAnonymousRequestId() {
 }
 
 async function requestVerification({ entryType, targetType, entryId, targetId, verifierUserId, verificationLevel = "faculty", message, studentUserId }) {
-  const Model = ENTRY_MODELS[entryType] || ENTRY_MODELS[targetType === "skill_evidence" ? "SkillEvidence" : "Project"];
-  const resolvedTargetType = targetType || (entryType === "SkillEvidence" ? "skill_evidence" : "project");
+  const Model = ENTRY_MODELS[entryType] || ENTRY_MODELS[targetType === "skill_evidence" ? "SkillEvidence" : targetType === "training" ? "Training" : "Project"];
+  const resolvedTargetType = targetType || (entryType === "SkillEvidence" ? "skill_evidence" : entryType === "Training" ? "training" : "project");
   const resolvedTargetId = targetId || entryId;
   const resolvedVerifierId = verifierUserId;
   if (!Model) {

@@ -24,9 +24,9 @@ async function postDecision(req, res) {
 
 async function getAuditTrail(req, res) {
   try {
-    const targetType = req.params.entryType === "SkillEvidence" ? "skill_evidence" : "project";
+    const targetType = req.params.entryType === "SkillEvidence" ? "skill_evidence" : req.params.entryType === "Training" ? "training" : "project";
     const student = await StudentProfile.findOne({ userId: req.user.id }).select("_id");
-    const Model = targetType === "skill_evidence" ? ENTRY_MODELS.SkillEvidence : ENTRY_MODELS.Project;
+    const Model = ENTRY_MODELS[targetType === "skill_evidence" ? "SkillEvidence" : targetType === "training" ? "Training" : "Project"];
     const ownsTarget = await Model.exists({ _id: req.params.entryId, studentId: student?._id });
     if (!ownsTarget) return res.status(403).json({ message: "You can only view your own verification audit" });
     const [records, pendingRequests] = await Promise.all([
@@ -57,7 +57,7 @@ async function getInbox(req, res) {
     if (String(req.user.id) !== String(req.params.endorserId)) return res.status(403).json({ message: "You can only view your own verification inbox" });
     const inbox = await VerificationRequest.find({ verifierUserId: req.user.id, status: { $in: ["pending", "processing"] } }).sort({ createdAt: -1 });
     const anonymousRequests = await Promise.all(inbox.map(async (request) => {
-      const Model = request.targetType === "skill_evidence" ? ENTRY_MODELS.SkillEvidence : ENTRY_MODELS.Project;
+      const Model = ENTRY_MODELS[request.targetType === "skill_evidence" ? "SkillEvidence" : request.targetType === "training" ? "Training" : "Project"];
       const target = await Model.findById(request.targetId).select("-studentId").lean();
       return {
       _id: request._id,

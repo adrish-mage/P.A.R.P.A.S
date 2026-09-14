@@ -28,8 +28,12 @@ export default function EvidenceVerification() {
       ]);
       setProjects(p);
       setTraining(t);
-      const projectAudits = await Promise.all(p.map((project) => api.getVerificationAuditTrail("Project", project._id)));
-      setAudits(Object.fromEntries(p.map((project, index) => [project._id, projectAudits[index]])));
+      const auditEntries = [
+        ...p.map((project) => ({ type: "Project", entry: project })),
+        ...t.map((record) => ({ type: "Training", entry: record })),
+      ];
+      const entryAudits = await Promise.all(auditEntries.map(({ type, entry }) => api.getVerificationAuditTrail(type, entry._id)));
+      setAudits(Object.fromEntries(auditEntries.map(({ entry }, index) => [entry._id, entryAudits[index]])));
 
       const institutionId = studentProfile?.institutionLink?.institutionId;
       if (institutionId && studentProfile.institutionLink.status === "Linked") {
@@ -59,7 +63,7 @@ export default function EvidenceVerification() {
     const pendingFacultyRequest = auditItems.some((item) => item.status === "pending" || item.status === "processing");
     return (
       <div className="list-item" key={entry._id}>
-        <span>{entry.title}</span>
+        <span>{entry.title || entry.name}</span>
         <span className={`status ${hasVerifiedAudit ? "verified" : "pending"}`}>
           {auditItems.length ? auditItems.map((item) => `${item.status} by ${item.verifierUserId?.name || "verifier"}`).join(" · ") : "Self-submitted"}
         </span>

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const verificationRequestSchema = new mongoose.Schema(
   {
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: "StudentProfile", required: true, immutable: true },
-    targetType: { type: String, enum: ["skill_evidence", "project"], required: true, immutable: true },
+    targetType: { type: String, enum: ["skill_evidence", "project", "training"], required: true, immutable: true },
     targetId: { type: mongoose.Schema.Types.ObjectId, required: true, immutable: true },
     verifierUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, immutable: true },
     anonymousRequestId: { type: String, required: true, unique: true, immutable: true },

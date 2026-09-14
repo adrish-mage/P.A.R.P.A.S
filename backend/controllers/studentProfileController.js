@@ -113,9 +113,22 @@ async function loadDemoData(req, res) {
     student.profileVisibility = "recruiter";
     await student.save();
 
+    const communicationSkill = await Skill.findOne({ name: "Communication" }).select("_id").lean();
+    if (communicationSkill) {
+      await Promise.all([
+        SkillProfile.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+        AcademicRecord.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+        Training.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+        Project.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+        IndustryExperience.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+        IndustryOpportunity.updateMany({}, { $pull: { requiredSkills: { skillId: communicationSkill._id } } }),
+        CareerRole.updateMany({}, { $pull: { skills: { skillId: communicationSkill._id } } }),
+      ]);
+      await Skill.deleteOne({ _id: communicationSkill._id });
+    }
+
     const definitions = [
       ["Python", "technical", 8, "self"],
-      ["Communication", "soft", 7, "self"],
       ["SQL", "technical", 7, "training"],
       ["Git", "technical", 8, "training"],
       ["React", "technical", 8, "project"],
@@ -174,7 +187,12 @@ async function loadDemoData(req, res) {
       { title: "Frontend Engineering Intern", type: "internship", description: "Build accessible product surfaces with the frontend platform team.", skills: [{ skillId: skills.React._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Git._id, minScore: 5, required: true, weight: .6 }] },
       { title: "Backend Developer Intern", type: "internship", description: "Ship APIs and data workflows for campus and employer products.", skills: [{ skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 6, required: true, weight: .8 }] },
       { title: "Junior Full-stack Engineer", type: "job", description: "Join a product squad working across React, Node.js, Python, and SQL.", skills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 6, required: true, weight: .8 }] },
-      { title: "Data Platform Associate", type: "job", description: "Turn operational data into reliable decisions for education and hiring.", skills: [{ skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 7, required: true, weight: .9 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] },
+      { title: "Data Platform Associate", type: "job", description: "Turn operational data into reliable decisions for education and hiring.", skills: [{ skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 7, required: true, weight: .9 }] },
+      { title: "Python Automation Intern", type: "internship", description: "Automate placement workflows and build reliable internal data tools.", skills: [{ skillId: skills.Python._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 5, required: true, weight: .8 }, { skillId: skills.Git._id, minScore: 5, required: true, weight: .5 }] },
+      { title: "SQL Data Analyst Intern", type: "internship", description: "Create reporting queries and data checks for education and hiring insights.", skills: [{ skillId: skills.SQL._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 5, required: true, weight: .7 }] },
+      { title: "React Product Intern", type: "internship", description: "Build accessible product interfaces for student and recruiter workflows.", skills: [{ skillId: skills.React._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Git._id, minScore: 5, required: true, weight: .6 }] },
+      { title: "Node.js API Intern", type: "internship", description: "Develop and test APIs supporting placement and opportunity services.", skills: [{ skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 5, required: true, weight: .7 }] },
+      { title: "Full-stack Engineering Intern", type: "internship", description: "Deliver features across React interfaces, Node.js APIs, and SQL data flows.", skills: [{ skillId: skills.React._id, minScore: 6, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 5, required: true, weight: .7 }] },
     ];
     for (const opportunity of opportunities) {
       await IndustryOpportunity.findOneAndUpdate(
@@ -253,12 +271,12 @@ async function loadDemoData(req, res) {
     );
 
     const additionalStudents = [
-      { email: "priya.nair@eastbridge.example", name: "Priya Nair", institution: "EASTBRIDGE", course: "B.Tech Computer Science", interest: "Frontend engineering and accessible product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["Communication", 8, "self"], ["SQL", 6, "training"]], project: "Accessible Campus Planner" },
-      { email: "rohan.mehta@northfield.example", name: "Rohan Mehta", institution: "NORTHFIELD", course: "B.Sc Data Science", interest: "Data platforms and applied analytics", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Communication", 7, "self"], ["Node.js", 5, "self"]], project: "Placement Forecasting Studio" },
+      { email: "priya.nair@eastbridge.example", name: "Priya Nair", institution: "EASTBRIDGE", course: "B.Tech Computer Science", interest: "Frontend engineering and accessible product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["SQL", 6, "training"]], project: "Accessible Campus Planner" },
+      { email: "rohan.mehta@northfield.example", name: "Rohan Mehta", institution: "NORTHFIELD", course: "B.Sc Data Science", interest: "Data platforms and applied analytics", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Node.js", 5, "self"]], project: "Placement Forecasting Studio" },
       { email: "maya.iyer@universityofcalcutta.example", name: "Maya Iyer", institution: "CALCUTTADEMO", course: "B.Tech Information Technology", interest: "Full-stack products and developer tooling", scores: [["Node.js", 9, "project"], ["React", 8, "project"], ["Python", 7, "training"], ["Git", 9, "training"]], project: "Student Hiring Workspace" },
       { email: "aditya.roy@universityofcalcutta.example", name: "Aditya Roy", institution: "CALCUTTADEMO", course: "B.Tech Computer Science", interest: "Backend systems and API engineering", scores: [["Node.js", 9, "project"], ["Python", 8, "project"], ["SQL", 8, "training"], ["Git", 8, "training"]], project: "Campus Services API" },
-      { email: "sneha.kapoor@universityofcalcutta.example", name: "Sneha Kapoor", institution: "CALCUTTADEMO", course: "B.Tech Information Technology", interest: "Frontend applications and product design", scores: [["React", 9, "project"], ["Communication", 9, "self"], ["Git", 8, "training"], ["SQL", 5, "self"]], project: "Student Experience Portal" },
-      { email: "kabir.das@universityofcalcutta.example", name: "Kabir Das", institution: "CALCUTTADEMO", course: "M.Sc Data Science", interest: "Analytics and applied machine learning", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Communication", 7, "self"], ["Node.js", 4, "self"]], project: "Placement Analytics Lab" },
+      { email: "sneha.kapoor@universityofcalcutta.example", name: "Sneha Kapoor", institution: "CALCUTTADEMO", course: "B.Tech Information Technology", interest: "Frontend applications and product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["SQL", 5, "self"]], project: "Student Experience Portal" },
+      { email: "kabir.das@universityofcalcutta.example", name: "Kabir Das", institution: "CALCUTTADEMO", course: "M.Sc Data Science", interest: "Analytics and applied machine learning", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Node.js", 4, "self"]], project: "Placement Analytics Lab" },
       { email: "ishita.bose@universityofcalcutta.example", name: "Ishita Bose", institution: "CALCUTTADEMO", course: "B.Tech Computer Science", interest: "Full-stack development and cloud systems", scores: [["React", 8, "project"], ["Node.js", 8, "project"], ["Python", 8, "training"], ["Git", 9, "training"]], project: "Collaborative Learning Hub" },
     ];
     for (const item of additionalStudents) {
@@ -300,8 +318,8 @@ async function loadDemoData(req, res) {
     }
 
     const additionalOrganisations = [
-      { email: "hiring@technova-demo.example", name: "TechNova Labs", code: "TECHNOVA", industry: "Software platforms", opportunity: { title: "Product Engineering Associate", type: "job", requiredSkills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
-      { email: "hiring@greengrid-demo.example", name: "GreenGrid Analytics", code: "GREENGRID", industry: "Data and sustainability", opportunity: { title: "Data Systems Fellow", type: "apprenticeship", requiredSkills: [{ skillId: skills.Python._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
+      { email: "hiring@technova-demo.example", name: "TechNova Labs", code: "TECHNOVA", industry: "Software platforms", opportunity: { title: "Product Engineering Associate", type: "job", requiredSkills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }] } },
+      { email: "hiring@greengrid-demo.example", name: "GreenGrid Analytics", code: "GREENGRID", industry: "Data and sustainability", opportunity: { title: "Data Systems Fellow", type: "apprenticeship", requiredSkills: [{ skillId: skills.Python._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }] } },
     ];
     for (const item of additionalOrganisations) {
       const additionalOrganisationUser = await User.findOneAndUpdate(
@@ -322,7 +340,7 @@ async function loadDemoData(req, res) {
     }
     const careerRoles = [
       { name: "Backend Developer", code: "backend_developer", description: "Build reliable APIs and data services.", skills: [["Python", 8, 1], ["Node.js", 7, 1], ["SQL", 7, .8], ["Git", 6, .5]] },
-      { name: "Frontend Engineer", code: "frontend_engineer", description: "Create accessible, production-ready interfaces.", skills: [["React", 8, 1], ["Git", 6, .6], ["Communication", 6, .4]] },
+      { name: "Frontend Engineer", code: "frontend_engineer", description: "Create accessible, production-ready interfaces.", skills: [["React", 8, 1], ["Git", 6, .6]] },
       { name: "Full-stack Engineer", code: "full_stack_engineer", description: "Work across product interfaces, APIs, and data.", skills: [["React", 8, 1], ["Node.js", 7, 1], ["Python", 7, .8], ["SQL", 7, .8]] },
     ];
     for (const role of careerRoles) {

@@ -5,11 +5,16 @@ import { getSessionValue, setSession } from "../session.js";
 
 const DEMO_STUDENT_NAME = "Aarav Sen";
 const DEMO_STUDENT_EMAIL = "aarav.sen@sih-demo.local";
-const DEMO_PROFESSIONAL_NAME = "PARPAS Demo Professional";
-const DEMO_PROFESSIONAL_EMAIL = "professional-demo@parpas.local";
+const DEMO_PROFESSIONAL_NAME = "Dr. Meera Iyer";
+const DEMO_PROFESSIONAL_EMAIL = "faculty-demo@parpas.local";
+const DEMO_TPO_NAME = "PARPAS Demo TPO";
+const DEMO_TPO_EMAIL = "tpo-demo@parpas.local";
 const DEMO_ORGANISATION_NAME = "University of Calcutta";
 const DEMO_ORGANISATION_CONTACT = "University of Calcutta Demo";
 const DEMO_ORGANISATION_EMAIL = "placements@universityofcalcutta-demo.example";
+const DEMO_INSTITUTION_NAME = "University of Calcutta";
+const DEMO_INSTITUTION_CONTACT = "University of Calcutta Demo Admin";
+const DEMO_INSTITUTION_EMAIL = "demo.admin@universityofcalcutta.example";
 
 const digilockerRoles = [
   { key: "Student", label: "Student", desc: "Build and verify your skill profile", path: "/portal/student" },
@@ -43,6 +48,19 @@ export default function AuthPage() {
       entityName: DEMO_ORGANISATION_NAME,
       registrationId: "CALCUTTADEMO",
       registrationDocUrl: "https://example.com/demo-registration",
+    }));
+  }
+
+  function useDemoInstitution() {
+    setError("");
+    setForm((current) => ({
+      ...current,
+      fullName: DEMO_INSTITUTION_CONTACT,
+      email: DEMO_INSTITUTION_EMAIL,
+      phone: "+91 98765 43210",
+      entityName: DEMO_INSTITUTION_NAME,
+      registrationId: "CALCUTTADEMO",
+      registrationDocUrl: "https://example.com/demo-institution-registration",
     }));
   }
 
@@ -151,9 +169,14 @@ export default function AuthPage() {
               </button>
             )}
             {mode === "Professional" && (
-              <button type="button" className="btn-secondary" onClick={() => setForm({ fullName: DEMO_PROFESSIONAL_NAME, email: DEMO_PROFESSIONAL_EMAIL, phone: "+91 98765 43210" })}>
-                Use demo professional
-              </button>
+              <>
+                <button type="button" className="btn-secondary" onClick={() => setForm({ fullName: DEMO_PROFESSIONAL_NAME, email: DEMO_PROFESSIONAL_EMAIL, phone: "+91 98765 43210" })}>
+                  Use demo faculty
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setForm({ fullName: DEMO_TPO_NAME, email: DEMO_TPO_EMAIL, phone: "+91 98765 43210" })}>
+                  Use demo TPO
+                </button>
+              </>
             )}
             <button type="submit">Continue with DigiLocker</button>
             <button type="button" className="btn-secondary" onClick={() => setMode(null)} style={{ marginTop: 8 }}>
@@ -176,6 +199,11 @@ export default function AuthPage() {
               required
             />
             <input name="registrationDocUrl" placeholder="Registration document URL" value={form.registrationDocUrl || ""} onChange={handleChange} />
+            {mode === "Institution" && (
+              <button type="button" className="btn-secondary" onClick={useDemoInstitution}>
+                Use Calcutta University demo
+              </button>
+            )}
             {mode === "Organisation" && (
               <button
                 type="button"
