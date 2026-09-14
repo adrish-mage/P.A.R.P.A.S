@@ -5,6 +5,10 @@ const AffiliationInvite = require("../models/AffiliationInvite");
 const User = require("../models/User");
 const StudentProfile = require("../models/StudentProfile");
 const SkillProfile = require("../models/SkillProfile");
+const AcademicRecord = require("../models/AcademicRecord");
+const Training = require("../models/Training");
+const Project = require("../models/Project");
+const IndustryExperience = require("../models/IndustryExperience");
 
 async function getOrganisation(req, res) {
   try {
@@ -30,18 +34,44 @@ async function listCandidates(req, res) {
     const organisation = await Organisation.findOne({ userId: req.user.id, isVerified: true, isActive: true });
     if (!organisation) return res.status(403).json({ message: "Verified organisation account required" });
     const query = String(req.query.q || "").trim().toLowerCase();
-    const profiles = await StudentProfile.find({ isActive: true }).populate("userId", "name email").lean();
-    const skillProfiles = await SkillProfile.find({ studentId: { $in: profiles.map((profile) => profile._id) } })
-      .populate("skills.skillId", "name aliases")
+    const profiles = await StudentProfile.find({ isActive: true })
+      .populate("userId", "name email")
+      .populate("institutionLink.institutionId", "name code")
       .lean();
+    const studentIds = profiles.map((profile) => profile._id);
+    const [skillProfiles, academicRecords, trainingRecords, projects, industryExperience] = await Promise.all([
+      SkillProfile.find({ studentId: { $in: studentIds } }).populate("skills.skillId", "name aliases").lean(),
+      AcademicRecord.find({ studentId: { $in: studentIds } }).populate("skills.skillId", "name").lean(),
+      Training.find({ studentId: { $in: studentIds } }).populate("skills.skillId", "name").lean(),
+      Project.find({ studentId: { $in: studentIds } }).populate("skills.skillId", "name").lean(),
+      IndustryExperience.find({ studentId: { $in: studentIds } }).populate("organisationId", "name").populate("skills.skillId", "name").lean(),
+    ]);
     const skillsByStudent = new Map(skillProfiles.map((profile) => [String(profile.studentId), profile.skills || []]));
+    const recordsByStudent = (records) => records.reduce((result, record) => {
+      const key = String(record.studentId);
+      result.set(key, [...(result.get(key) || []), record]);
+      return result;
+    }, new Map());
+    const academicsByStudent = recordsByStudent(academicRecords);
+    const trainingByStudent = recordsByStudent(trainingRecords);
+    const projectsByStudent = recordsByStudent(projects);
+    const experienceByStudent = recordsByStudent(industryExperience);
     const candidates = profiles.map((profile) => ({
+      studentId: profile._id,
+      profileId: profile._id,
       userId: profile.userId?._id,
       name: profile.userId?.name,
       email: profile.userId?.email,
       bio: profile.bio,
+      careerInterest: profile.careerInterest,
+      profileVisibility: profile.profileVisibility,
       institutionLink: profile.institutionLink,
+      institution: profile.institutionLink?.institutionId || null,
       skills: skillsByStudent.get(String(profile._id)) || [],
+      academicRecords: academicsByStudent.get(String(profile._id)) || [],
+      training: trainingByStudent.get(String(profile._id)) || [],
+      projects: projectsByStudent.get(String(profile._id)) || [],
+      industryExperience: experienceByStudent.get(String(profile._id)) || [],
     })).filter((candidate) => {
       if (!query) return true;
       const skillText = candidate.skills.map((skill) => `${skill.skillId?.name || ""} ${(skill.skillId?.aliases || []).join(" ")}`).join(" ");

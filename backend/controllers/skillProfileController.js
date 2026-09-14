@@ -21,7 +21,7 @@ async function getSkillProfile(req, res) {
   try {
     if (String(req.user.id) !== String(req.params.userId)) return res.status(403).json({ message: "You can only view your own skill profile" });
     const studentId = await findStudentProfileId(req.user.id);
-    const skillProfile = await SkillProfile.findOne({ studentId });
+    const skillProfile = await SkillProfile.findOne({ studentId }).populate("skills.skillId", "name canonicalName aliases");
     if (!skillProfile) {
       return res.status(404).json({ message: "Skill profile not found" });
     }
@@ -40,7 +40,7 @@ async function updateSkillProfile(req, res) {
       { studentId },
       data,
       { new: true, runValidators: true }
-    );
+    ).populate("skills.skillId", "name canonicalName aliases");
     if (!skillProfile) {
       return res.status(404).json({ message: "Skill profile not found" });
     }

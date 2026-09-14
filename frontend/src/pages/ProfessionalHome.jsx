@@ -80,7 +80,7 @@ export default function ProfessionalHome() {
                 <strong>{inv.affiliationType} · {inv.affiliationId?.name || "Affiliation"}</strong>
                 <br />
                 <small>
-                  Code: {inv.affiliationId?.code || "Not provided"} · Status: {inv.status}
+                  Role: {inv.message?.match(/(?:Institution role:|Organisation role:)\s*(.+)$/i)?.[1] || "Member"} · Code: {inv.affiliationId?.code || "Not provided"} · Status: {inv.status}
                 </small>
               </span>
               <span>

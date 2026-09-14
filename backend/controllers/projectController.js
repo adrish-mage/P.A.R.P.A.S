@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const Verification = require("../models/Verification");
 const { findStudentProfileId } = require("../utilities/studentProfile");
 
 async function createProjectEntry(req, res) {
@@ -17,8 +18,27 @@ async function getProjectsByUser(req, res) {
   try {
     if (String(req.user.id) !== String(req.params.userId)) return res.status(403).json({ message: "You can only view your own records" });
     const studentId = await findStudentProfileId(req.user.id);
-    const entries = await Project.find({ studentId });
-    return res.status(200).json(entries);
+    const entries = await Project.find({ studentId }).populate("skills.skillId", "name canonicalName aliases").lean();
+    const verifications = await Verification.find({
+      studentId,
+      targetType: "project",
+      targetId: { $in: entries.map((entry) => entry._id) },
+    }).sort({ verifiedAt: -1 }).lean();
+    const verificationByProject = new Map();
+    for (const verification of verifications) {
+      if (!verificationByProject.has(String(verification.targetId))) {
+        verificationByProject.set(String(verification.targetId), verification);
+      }
+    }
+    const result = entries.map((entry) => {
+      const verification = verificationByProject.get(String(entry._id));
+      return {
+        ...entry,
+        verificationStatus: verification?.status === "verified" ? "Verified" : verification?.status === "rejected" ? "Rejected" : "Pending",
+        verificationId: verification?._id || null,
+      };
+    });
+    return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

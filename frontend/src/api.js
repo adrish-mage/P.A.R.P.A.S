@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:6767/api";
 import { getSessionValue } from "./session.js";
 
 async function request(path, options = {}) {
@@ -62,6 +62,7 @@ export const api = {
   declineInvite: (id) => put(`/memberships/${id}/decline`, {}),
 
   getStudentProfile: (userId) => request(`/student-profile/${userId}`),
+  loadStudentDemoData: () => post("/student-profile/demo-data", {}),
   updateStudentProfile: (userId, data) => put(`/student-profile/${userId}`, data),
   requestInstitutionLink: (userId, data) => put(`/student-profile/${userId}/request-link`, data),
   consentToInstitutionLink: (userId) => put(`/student-profile/${userId}/consent-link`, {}),
@@ -124,9 +125,13 @@ export const api = {
   listLearningOpportunities: () => request(`/learning-opportunities`),
 
   getSkillGap: (data) => post(`/insights/skill-gap`, data),
+  getOpportunitySkillGap: (opportunityId) => post(`/insights/opportunity-skill-gap`, { opportunityId }),
+  getCandidateOpportunityMatch: (studentId, opportunityId) => post(`/insights/candidate-opportunity-match`, { studentId, opportunityId }),
+  listCareerRoles: () => request("/insights/career-roles"),
   getPlacementInsights: (data) => post(`/insights/placement`, data),
   getGrowthMapRecommendation: (data) => post(`/insights/growth-map-recommend`, data),
-  parseResume: (documentUrl) => post(`/insights/resume-parse`, { documentUrl }),
+  parseResume: (documentText) => post(`/insights/resume-parse`, { documentText }),
+  getIntelligentMatching: () => post(`/insights/match`, {}),
 
   listIndustryOpportunities: (query = "") => request(`/industry-opportunities${query ? `?${query}` : ""}`),
   getIndustryOpportunity: (id) => request(`/industry-opportunities/${id}`),

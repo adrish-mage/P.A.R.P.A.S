@@ -5,13 +5,12 @@ const StudentProfile = require("../models/StudentProfile");
 
 async function create(req, res) {
 	try {
-		const organisation = await Organisation.findOne({ _id: req.body.organisationId, userId: req.user.id, isVerified: true, isActive: true });
+		const organisation = await Organisation.findOne({ userId: req.user.id, isVerified: true, isActive: true });
 		if (!organisation) return res.status(403).json({ message: "Only a verified organisation admin can shortlist candidates" });
 		const opportunityId = req.body.opportunityId || req.body.industryOpportunityId;
-		if (opportunityId) {
-			const opportunity = await IndustryOpportunity.findOne({ _id: opportunityId, organisationId: organisation._id });
-			if (!opportunity) return res.status(400).json({ message: "Opportunity does not belong to this organisation" });
-		}
+		if (!opportunityId) return res.status(400).json({ message: "opportunityId is required" });
+		const opportunity = await IndustryOpportunity.findOne({ _id: opportunityId, organisationId: organisation._id, isActive: true });
+		if (!opportunity) return res.status(400).json({ message: "Active opportunity does not belong to this organisation" });
 		const student = await StudentProfile.findById(req.body.studentId).select("_id");
 		if (!student) return res.status(404).json({ message: "Student profile not found" });
 		const shortlist = await OpportunityShortlist.create({ opportunityId, studentId: student._id });

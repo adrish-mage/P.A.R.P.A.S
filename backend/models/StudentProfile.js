@@ -14,6 +14,11 @@ const studentProfileSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000,
     },
+    careerInterest: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
     profileVisibility: {
       type: String,
       enum: ["private", "institution", "recruiter", "public"],

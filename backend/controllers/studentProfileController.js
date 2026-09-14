@@ -1,6 +1,17 @@
 const StudentProfile = require("../models/StudentProfile");
 const Institution = require("../models/Institution");
 const AffiliationApplication = require("../models/AffiliationApplication");
+const User = require("../models/User");
+const Skill = require("../models/Skill");
+const SkillProfile = require("../models/SkillProfile");
+const Training = require("../models/Training");
+const Project = require("../models/Project");
+const VerificationRequest = require("../models/VerificationRequest");
+const Verification = require("../models/Verification");
+const Organisation = require("../models/Organisation");
+const IndustryOpportunity = require("../models/IndustryOpportunity");
+const CareerRole = require("../models/CareerRole");
+const LearningOpportunity = require("../models/LearningOpportunity");
 
 async function getByUser(req, res) {
   try {
@@ -87,4 +98,183 @@ async function approveLink(req, res) {
   return res.status(410).json({ message: "Institution approval is handled through affiliation applications" });
 }
 
-module.exports = { getByUser, updateProfile, consentToLink, requestLink, approveLink };
+async function loadDemoData(req, res) {
+  try {
+    const user = await User.findById(req.user.id);
+    const student = await StudentProfile.findOne({ userId: req.user.id });
+    if (!user || user.accountType !== "individual" || !student) return res.status(403).json({ message: "Student account required" });
+    student.bio = student.bio || "Computer science student building practical products for education and hiring.";
+    student.careerInterest = student.careerInterest || "Backend and full-stack engineering";
+    student.profileVisibility = "recruiter";
+    await student.save();
+
+    const definitions = [
+      ["Python", "technical", 8, "self"],
+      ["Communication", "soft", 7, "self"],
+      ["SQL", "technical", 7, "training"],
+      ["Git", "technical", 8, "training"],
+      ["React", "technical", 8, "project"],
+      ["Node.js", "technical", 7, "project"],
+    ];
+    const skills = {};
+    for (const [name, category] of definitions) {
+      skills[name] = await Skill.findOneAndUpdate({ name }, { $setOnInsert: { name, category } }, { new: true, upsert: true, setDefaultsOnInsert: true });
+    }
+
+    let profile = await SkillProfile.findOne({ studentId: student._id });
+    const existing = profile?.skills || [];
+    const merged = [...existing];
+    for (const [name, , score, source] of definitions) {
+      const entry = { skillId: skills[name]._id, score, source, confidence: source === "self" ? 70 : source === "training" ? 85 : 90, evidenceCount: 1, verifiedEvidenceCount: source === "project" ? 1 : 0 };
+      const index = merged.findIndex((item) => String(item.skillId) === String(entry.skillId));
+      if (index === -1) merged.push(entry);
+      else merged[index] = { ...merged[index].toObject?.() || merged[index], ...entry };
+    }
+    profile = await SkillProfile.findOneAndUpdate({ studentId: student._id }, { $set: { skills: merged } }, { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true });
+
+    await Training.findOneAndUpdate(
+      { studentId: student._id, name: "SQL & Git Foundations" },
+      { $setOnInsert: { studentId: student._id, name: "SQL & Git Foundations", description: "Course covering relational queries, version control, and collaborative workflows.", provider: { type: "external", externalProviderName: "P.A.R.P.A.S. Demo Academy" }, type: "course", startedAt: new Date("2026-01-10"), completedAt: new Date("2026-02-20"), skills: [{ skillId: skills.SQL._id }, { skillId: skills.Git._id }], certificate: { title: "SQL & Git Foundations", issuer: "P.A.R.P.A.S. Demo Academy", issuedAt: new Date("2026-02-20"), hasAssessment: true, assessmentScore: 88 } } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    const project = await Project.findOneAndUpdate(
+      { studentId: student._id, title: "Campus Placement Insight Portal" },
+      { $setOnInsert: { studentId: student._id, title: "Campus Placement Insight Portal", description: "A dashboard that helps placement teams understand skill readiness and role alignment.", type: "academic", skills: [{ skillId: skills.React._id }, { skillId: skills["Node.js"]._id }], evidence: [{ type: "link", url: "https://example.com/demo-placement-portal" }], completedAt: new Date("2026-03-15") } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    let verification = await Verification.findOne({ targetType: "project", targetId: project._id, status: "verified" });
+    if (!verification) {
+      let request = await VerificationRequest.findOne({ studentId: student._id, targetType: "project", targetId: project._id, verifierUserId: user._id });
+      if (!request) request = await VerificationRequest.create({ studentId: student._id, targetType: "project", targetId: project._id, verifierUserId: user._id, anonymousRequestId: `demo-${project._id}`, verificationLevel: "faculty" });
+      verification = await Verification.create({ requestId: request._id, targetType: "project", targetId: project._id, studentId: student._id, verifierUserId: user._id, verificationLevel: "faculty", verifierMembershipId: request._id, verifierRoleAssignmentId: request._id, status: "verified", verificationScore: 9, comments: "Demo verified project", verifiedAt: new Date() });
+      request.status = "completed";
+      request.respondedAt = new Date();
+      request.verificationId = verification._id;
+      await request.save();
+    }
+
+    const organisationUser = await User.findOneAndUpdate(
+      { email: "placements@universityofcalcutta-demo.example" },
+      { $setOnInsert: { name: "University of Calcutta Demo", email: "placements@universityofcalcutta-demo.example", accountType: "organisation", onboardingStatus: "in_progress" } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    const organisation = await Organisation.findOneAndUpdate(
+      { userId: organisationUser._id },
+      { $setOnInsert: { userId: organisationUser._id, name: "University of Calcutta", code: "CALCUTTADEMO", isVerified: true, isActive: true } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    const opportunities = [
+      { title: "Frontend Engineering Intern", type: "internship", description: "Build accessible product surfaces with the frontend platform team.", skills: [{ skillId: skills.React._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Git._id, minScore: 5, required: true, weight: .6 }] },
+      { title: "Backend Developer Intern", type: "internship", description: "Ship APIs and data workflows for campus and employer products.", skills: [{ skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 6, required: true, weight: .8 }] },
+      { title: "Junior Full-stack Engineer", type: "job", description: "Join a product squad working across React, Node.js, Python, and SQL.", skills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 6, required: true, weight: .8 }] },
+      { title: "Data Platform Associate", type: "job", description: "Turn operational data into reliable decisions for education and hiring.", skills: [{ skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Python._id, minScore: 7, required: true, weight: .9 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] },
+    ];
+    for (const opportunity of opportunities) {
+      await IndustryOpportunity.findOneAndUpdate(
+        { organisationId: organisation._id, title: opportunity.title },
+        { $setOnInsert: { organisationId: organisation._id, title: opportunity.title, type: opportunity.type, description: opportunity.description, requiredSkills: opportunity.skills, location: "Kolkata / Remote", mode: opportunity.type === "job" ? "hybrid" : "remote", applicationDeadline: new Date("2027-12-31"), isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    const demoInstitutions = [
+      { email: "demo.admin@universityofcalcutta.example", name: "University of Calcutta", code: "CALCUTTADEMO", emailDomain: "universityofcalcutta.example" },
+      { email: "demo.admin@eastbridge.example", name: "Eastbridge Institute of Technology", code: "EASTBRIDGE", emailDomain: "eastbridge.example" },
+      { email: "demo.admin@northfield.example", name: "Northfield University", code: "NORTHFIELD", emailDomain: "northfield.example" },
+    ];
+    const institutionRecords = {};
+    for (const item of demoInstitutions) {
+      const institutionUser = await User.findOneAndUpdate(
+        { email: item.email },
+        { $setOnInsert: { name: `${item.name} Demo Admin`, email: item.email, accountType: "institution", onboardingStatus: "in_progress" } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      institutionRecords[item.code] = await Institution.findOneAndUpdate(
+        { userId: institutionUser._id },
+        { $setOnInsert: { userId: institutionUser._id, name: item.name, code: item.code, emailDomain: item.emailDomain, isVerified: true, isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    const additionalStudents = [
+      { email: "priya.nair@eastbridge.example", name: "Priya Nair", institution: "EASTBRIDGE", course: "B.Tech Computer Science", interest: "Frontend engineering and accessible product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["Communication", 8, "self"], ["SQL", 6, "training"]], project: "Accessible Campus Planner" },
+      { email: "rohan.mehta@northfield.example", name: "Rohan Mehta", institution: "NORTHFIELD", course: "B.Sc Data Science", interest: "Data platforms and applied analytics", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Communication", 7, "self"], ["Node.js", 5, "self"]], project: "Placement Forecasting Studio" },
+      { email: "maya.iyer@universityofcalcutta.example", name: "Maya Iyer", institution: "CALCUTTADEMO", course: "B.Tech Information Technology", interest: "Full-stack products and developer tooling", scores: [["Node.js", 9, "project"], ["React", 8, "project"], ["Python", 7, "training"], ["Git", 9, "training"]], project: "Student Hiring Workspace" },
+      { email: "aditya.roy@universityofcalcutta.example", name: "Aditya Roy", institution: "CALCUTTADEMO", course: "B.Tech Computer Science", interest: "Backend systems and API engineering", scores: [["Node.js", 9, "project"], ["Python", 8, "project"], ["SQL", 8, "training"], ["Git", 8, "training"]], project: "Campus Services API" },
+      { email: "sneha.kapoor@universityofcalcutta.example", name: "Sneha Kapoor", institution: "CALCUTTADEMO", course: "B.Tech Information Technology", interest: "Frontend applications and product design", scores: [["React", 9, "project"], ["Communication", 9, "self"], ["Git", 8, "training"], ["SQL", 5, "self"]], project: "Student Experience Portal" },
+      { email: "kabir.das@universityofcalcutta.example", name: "Kabir Das", institution: "CALCUTTADEMO", course: "M.Sc Data Science", interest: "Analytics and applied machine learning", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Communication", 7, "self"], ["Node.js", 4, "self"]], project: "Placement Analytics Lab" },
+      { email: "ishita.bose@universityofcalcutta.example", name: "Ishita Bose", institution: "CALCUTTADEMO", course: "B.Tech Computer Science", interest: "Full-stack development and cloud systems", scores: [["React", 8, "project"], ["Node.js", 8, "project"], ["Python", 8, "training"], ["Git", 9, "training"]], project: "Collaborative Learning Hub" },
+    ];
+    for (const item of additionalStudents) {
+      const additionalUser = await User.findOneAndUpdate(
+        { email: item.email },
+        { $setOnInsert: { name: item.name, email: item.email, accountType: "individual", identityVerification: { status: "verified", provider: "digilocker", verifiedAt: new Date() } } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      const additionalStudent = await StudentProfile.findOneAndUpdate(
+        { userId: additionalUser._id },
+        { $set: { bio: `${item.name} is building practical work for modern teams.`, careerInterest: item.interest, profileVisibility: "recruiter", institutionLink: { institutionId: institutionRecords[item.institution]?._id, status: "Linked", rollNo: `DEMO-${item.institution}`, enrollmentId: `ENR-${item.institution}-${item.name.replace(/\s/g, "").toUpperCase()}`, course: item.course, admissionYear: 2023 } } },
+        { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+      );
+      const studentSkills = item.scores.map(([name, score, source]) => ({ skillId: skills[name]._id, score, source, confidence: source === "self" ? 70 : 90, evidenceCount: 1, verifiedEvidenceCount: source === "project" ? 1 : 0 }));
+      await SkillProfile.findOneAndUpdate({ studentId: additionalStudent._id }, { $set: { skills: studentSkills } }, { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true });
+      await Project.findOneAndUpdate(
+        { studentId: additionalStudent._id, title: item.project },
+        { $setOnInsert: { studentId: additionalStudent._id, title: item.project, description: `${item.project} demonstrates practical delivery and collaboration.`, type: "academic", skills: studentSkills.filter((entry) => entry.source === "project").map((entry) => ({ skillId: entry.skillId })), evidence: [{ type: "link", url: `https://example.com/demo-${item.name.toLowerCase().replace(/\s/g, "-")}-project` }], completedAt: new Date("2026-04-01") } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    const additionalOrganisations = [
+      { email: "hiring@technova-demo.example", name: "TechNova Labs", code: "TECHNOVA", industry: "Software platforms", opportunity: { title: "Product Engineering Associate", type: "job", requiredSkills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Node.js._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
+      { email: "hiring@greengrid-demo.example", name: "GreenGrid Analytics", code: "GREENGRID", industry: "Data and sustainability", opportunity: { title: "Data Systems Fellow", type: "apprenticeship", requiredSkills: [{ skillId: skills.Python._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
+    ];
+    for (const item of additionalOrganisations) {
+      const additionalOrganisationUser = await User.findOneAndUpdate(
+        { email: item.email },
+        { $setOnInsert: { name: `${item.name} Hiring`, email: item.email, accountType: "organisation", onboardingStatus: "in_progress" } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      const additionalOrganisation = await Organisation.findOneAndUpdate(
+        { userId: additionalOrganisationUser._id },
+        { $setOnInsert: { userId: additionalOrganisationUser._id, name: item.name, code: item.code, industry: item.industry, isVerified: true, isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      await IndustryOpportunity.findOneAndUpdate(
+        { organisationId: additionalOrganisation._id, title: item.opportunity.title },
+        { $setOnInsert: { organisationId: additionalOrganisation._id, ...item.opportunity, description: `Demo role at ${item.name}.`, location: "Remote", mode: "remote", applicationDeadline: new Date("2027-12-31"), isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+    const careerRoles = [
+      { name: "Backend Developer", code: "backend_developer", description: "Build reliable APIs and data services.", skills: [["Python", 8, 1], ["Node.js", 7, 1], ["SQL", 7, .8], ["Git", 6, .5]] },
+      { name: "Frontend Engineer", code: "frontend_engineer", description: "Create accessible, production-ready interfaces.", skills: [["React", 8, 1], ["Git", 6, .6], ["Communication", 6, .4]] },
+      { name: "Full-stack Engineer", code: "full_stack_engineer", description: "Work across product interfaces, APIs, and data.", skills: [["React", 8, 1], ["Node.js", 7, 1], ["Python", 7, .8], ["SQL", 7, .8]] },
+    ];
+    for (const role of careerRoles) {
+      await CareerRole.findOneAndUpdate(
+        { code: role.code },
+        { $setOnInsert: { name: role.name, code: role.code, description: role.description, skills: role.skills.map(([name, targetLevel, weight]) => ({ skillId: skills[name]._id, targetLevel, weight })), isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+    const learningOpportunities = [
+      { title: "Advanced Python API Practice", type: "hands_on_training", description: "Build and test production-style Python APIs to close the backend readiness gap.", skills: [{ skillId: skills.Python._id, targetLevel: 9, required: true, weight: 1 }] },
+      { title: "Backend Systems Lab", type: "course", description: "Practice Node.js, SQL, and service design through a guided backend project.", skills: [{ skillId: skills["Node.js"]._id, targetLevel: 8, required: true, weight: 1 }, { skillId: skills.SQL._id, targetLevel: 8, required: true, weight: .8 }] },
+    ];
+    for (const opportunity of learningOpportunities) {
+      await LearningOpportunity.findOneAndUpdate(
+        { title: opportunity.title, "provider.externalProviderName": "P.A.R.P.A.S. Demo Academy" },
+        { $setOnInsert: { ...opportunity, provider: { type: "external", externalProviderName: "P.A.R.P.A.S. Demo Academy" }, deliveryMode: "online", registrationDeadline: new Date("2027-12-31"), isActive: true } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+    return res.status(200).json({ message: "Demo student, verified project, University of Calcutta opportunities, and career roles are ready", skillCount: profile.skills.length, projectId: project._id, organisation: organisation.name, opportunityCount: opportunities.length });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+module.exports = { getByUser, updateProfile, consentToLink, requestLink, approveLink, loadDemoData };

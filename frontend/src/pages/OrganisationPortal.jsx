@@ -21,6 +21,12 @@ export default function OrganisationPortal() {
   const [opportunities, setOpportunities] = useState([]);
   const [applications, setApplications] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [institutions, setInstitutions] = useState([]);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState("");
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [searchMode, setSearchMode] = useState("opportunity");
+  const [institutionQuery, setInstitutionQuery] = useState("");
+  const [institutionSearch, setInstitutionSearch] = useState("");
   const [candidateQuery, setCandidateQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -33,19 +39,80 @@ export default function OrganisationPortal() {
   async function load() {
     setLoading(true);
     try {
-      const [entries, receivedApplications, allCandidates] = await Promise.all([
+      const [entries, receivedApplications, allCandidates, verifiedInstitutions] = await Promise.all([
         api.listIndustryOpportunities(),
         api.listOrganisationApplications(),
         api.listOrganisationCandidates(),
+        api.listVerifiedInstitutions(),
       ]);
       setOpportunities(entries.filter((entry) => entry.organisationId?._id === entityId));
       setApplications(receivedApplications);
       setCandidates(allCandidates);
+      setInstitutions(verifiedInstitutions);
+      if (!selectedOpportunityId) {
+        setSelectedOpportunityId(entries.find((entry) => entry.organisationId?._id === entityId)?._id || "");
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function getCandidateMatch(candidate, opportunity) {
+    if (!opportunity || !Array.isArray(opportunity.requiredSkills) || !candidate?.skills?.length) {
+      return { score: 0, matchCount: 0, requiredCount: 0, matchedSkills: [] };
+    }
+
+    const skillMap = new Map(
+      candidate.skills
+        .filter((entry) => entry?.skillId?._id || entry?.skillId)
+        .map((entry) => [String(entry.skillId?._id || entry.skillId), entry])
+    );
+
+    const analysedSkills = opportunity.requiredSkills
+      .map((requiredSkill) => {
+        const skillId = String(requiredSkill.skillId?._id || requiredSkill.skillId);
+        const studentSkill = skillMap.get(skillId);
+        const requiredScore = Number(requiredSkill.minScore || 0);
+        if (!studentSkill) return { name: requiredSkill.skillId?.name || "Skill", currentScore: 0, requiredScore, gap: -requiredScore, meetsRequirement: false, weight: Number(requiredSkill.weight || 1) };
+        const currentScore = Number(studentSkill.score || 0);
+        return { name: requiredSkill.skillId?.name || "Skill", currentScore, requiredScore, gap: currentScore - requiredScore, meetsRequirement: currentScore >= requiredScore, weight: Number(requiredSkill.weight || 1) };
+      });
+
+    const requiredCount = opportunity.requiredSkills.length;
+    const matchCount = analysedSkills.filter((skill) => skill.meetsRequirement).length;
+   const totalWeight = analysedSkills.reduce((total, skill) => total + skill.weight, 0);
+   const score = requiredCount === 0 ? 0 : Math.min(100, Math.round(analysedSkills.reduce((total, skill) => total + Math.min(1, skill.requiredScore ? skill.currentScore / skill.requiredScore : 1) * skill.weight, 0) / totalWeight * 100));
+
+    return { score, matchCount, requiredCount, matchedSkills: analysedSkills };
+  }
+
+  async function shortlistCandidate(candidate) {
+    if (!selectedOpportunityId) {
+      setError("Select an opportunity before shortlisting a candidate.");
+      return;
+    }
+
+    try {
+      setError("");
+      await api.shortlistCandidate({ organisationId: entityId, opportunityId: selectedOpportunityId, studentId: candidate.studentId });
+      setNotice(`${candidate.name} shortlisted for the selected opportunity.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function candidateEvidence(candidate) {
+    return [
+      ...(candidate.academicRecords || []).map((record) => ({
+        label: record.course?.name || "Academic record",
+        detail: [record.course?.type, record.performance?.grade || (record.performance?.marks != null ? `${record.performance.marks}/${record.performance.maxMarks}` : "")].filter(Boolean).join(" · "),
+      })),
+      ...(candidate.training || []).map((record) => ({ label: record.name, detail: `${record.provider?.externalProviderName || "Training"}${record.certificate?.assessmentScore != null ? ` · Assessment ${record.certificate.assessmentScore}%` : ""}` })),
+      ...(candidate.projects || []).map((project) => ({ label: project.title, detail: project.type || "Project" })),
+      ...(candidate.industryExperience || []).map((experience) => ({ label: experience.role || "Industry experience", detail: `${experience.organisationId?.name || "Organisation"}${experience.type ? ` · ${experience.type}` : ""}` })),
+    ];
   }
 
   function updateField(event) {
@@ -131,19 +198,114 @@ export default function OrganisationPortal() {
 
         <div className="card">
           <h2>PARPAS candidates</h2>
-          <p className="subtitle">Search registered students by name, email, bio, or mapped skill. Python ranking can be added later.</p>
-          <input value={candidateQuery} onChange={(event) => setCandidateQuery(event.target.value.toLowerCase())} placeholder="Search candidates or skills" />
-          {candidates.filter((candidate) => `${candidate.name} ${candidate.email} ${candidate.bio || ""} ${(candidate.skills || []).map((skill) => skill.skillId?.name).join(" ")}`.toLowerCase().includes(candidateQuery)).map((candidate) => (
-            <div className="list-item" key={candidate.userId}>
-              <span>
-                <strong>{candidate.name}</strong>
-                <br />
-                <small>{candidate.email} · {(candidate.skills || []).map((skill) => skill.skillId?.name).filter(Boolean).join(", ") || "No mapped skills"}</small>
-              </span>
-              <span className="status verified">Candidate</span>
+          <p className="subtitle">Find students by institution and job fit, or search the complete recruiter-visible student pool.</p>
+          <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" className={searchMode === "opportunity" ? "" : "btn-secondary"} onClick={() => setSearchMode("opportunity")}>Match by institution and job</button>
+              <button type="button" className={searchMode === "general" ? "" : "btn-secondary"} onClick={() => setSearchMode("general")}>Search all students</button>
             </div>
-          ))}
-          {candidates.filter((candidate) => `${candidate.name} ${candidate.email} ${candidate.bio || ""} ${(candidate.skills || []).map((skill) => skill.skillId?.name).join(" ")}`.toLowerCase().includes(candidateQuery)).length === 0 && <p className="subtitle">No candidates found.</p>}
+            {searchMode === "opportunity" && <>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={institutionSearch} onChange={(event) => setInstitutionSearch(event.target.value)} placeholder="Enter institution name" />
+                <button type="button" onClick={() => setInstitutionQuery(institutionSearch.trim())}>Search institution</button>
+              </div>
+              {institutionSearch.trim() && (
+                <div className="institution-suggestions">
+                  {institutions
+                    .filter((institution) => `${institution.name} ${institution.code}`.toLowerCase().includes(institutionSearch.trim().toLowerCase()))
+                    .slice(0, 5)
+                    .map((institution) => (
+                      <button type="button" key={institution._id} onClick={() => { setInstitutionSearch(institution.name); setInstitutionQuery(institution.name); }}>
+                        <strong>{institution.name}</strong><small>{institution.code}</small>
+                      </button>
+                    ))}
+                </div>
+              )}
+              <select value={selectedOpportunityId} onChange={(event) => setSelectedOpportunityId(event.target.value)}>
+                <option value="">Select job or opportunity to assess fit</option>
+                {opportunities.map((opportunity) => (
+                  <option key={opportunity._id} value={opportunity._id}>{opportunity.title}</option>
+                ))}
+              </select>
+            </>}
+            {searchMode === "general" && <input value={candidateQuery} onChange={(event) => setCandidateQuery(event.target.value.toLowerCase())} placeholder="Search candidates or skills" />}
+          </div>
+
+          {(() => {
+            const selectedOpportunity = opportunities.find((opportunity) => opportunity._id === selectedOpportunityId);
+            if (searchMode === "opportunity") {
+              if (!institutionQuery) return <p className="subtitle">Search for an institution to view its students in the wireframe.</p>;
+              const institutionCandidates = candidates.filter((candidate) => `${candidate.institution?.name || ""} ${candidate.institution?.code || ""}`.toLowerCase().includes(institutionQuery.toLowerCase()));
+              const institutionName = institutionCandidates[0]?.institution?.name || institutionQuery;
+              return (
+                <div className="institution-search-result">
+                  <span>
+                    <strong>{institutionName}</strong>
+                    <small>{institutionCandidates.length} student{institutionCandidates.length === 1 ? "" : "s"} available for this institution</small>
+                  </span>
+                  {institutionCandidates.length > 0 && selectedOpportunity ? <Link className="btn" to={`/recruiter?institution=${encodeURIComponent(institutionQuery)}&opportunityId=${selectedOpportunity._id}`}>View students</Link> : <small>{selectedOpportunity ? "No students found for this institution." : "Select a job to continue."}</small>}
+                </div>
+              );
+            }
+            const filteredCandidates = candidates.filter((candidate) => {
+              const haystack = `${candidate.name || ""} ${candidate.email || ""} ${candidate.bio || ""} ${candidate.careerInterest || ""} ${(candidate.skills || []).map((skill) => skill.skillId?.name).join(" ")}`.toLowerCase();
+              const institution = `${candidate.institution?.name || ""} ${candidate.institution?.code || ""}`.toLowerCase();
+              const institutionMatches = searchMode === "general" || !institutionQuery.trim() || institution.includes(institutionQuery.trim().toLowerCase());
+              return institutionMatches && haystack.includes(candidateQuery);
+            });
+
+            if (filteredCandidates.length === 0) {
+              return <p className="subtitle">No candidates found.</p>;
+            }
+
+            return filteredCandidates.map((candidate) => {
+              const match = getCandidateMatch(candidate, selectedOpportunity);
+              const skillNames = (candidate.skills || []).map((skill) => skill.skillId?.name).filter(Boolean);
+              const isSelected = selectedCandidateId === String(candidate.studentId);
+              const evidence = candidateEvidence(candidate);
+
+              return (
+                <div className="list-item" key={candidate.studentId || candidate.userId} style={{ alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+                  <span style={{ display: "grid", gap: 4, flex: 1 }}>
+                    <strong>{candidate.name}</strong>
+                    <small>{candidate.email}</small>
+                    <small><strong>Institution:</strong> {candidate.institution?.name || "Institution not linked"}</small>
+                    {candidate.careerInterest && <small>{candidate.careerInterest}</small>}
+                    <small>{skillNames.length ? skillNames.join(", ") : "No mapped skills"}</small>
+                    {isSelected && (
+                      <span style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                        <small>{candidate.bio || "No bio provided."}</small>
+                        <small><strong>Evidence:</strong> {evidence.length ? evidence.map((item) => `${item.label}${item.detail ? ` (${item.detail})` : ""}`).join(" · ") : "No academic, training, project, or industry records yet."}</small>
+                        {match.matchedSkills.length > 0 && <small><strong>Matched requirements:</strong> {match.matchedSkills.map((skill) => `${skill.name} ${skill.currentScore}/${skill.requiredScore || "any"}`).join(" · ")}</small>}
+                      </span>
+                    )}
+                  </span>
+
+                  <span style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+                    {searchMode === "opportunity" && selectedOpportunity ? (
+                      <span className="status verified" style={{ minWidth: 110, textAlign: "center" }}>
+                        {match.score}% fit
+                      </span>
+                    ) : (
+                      <span className="status pending">Student</span>
+                    )}
+
+                    <span style={{ display: "flex", gap: 8 }}>
+                      <button className="btn-secondary" type="button" onClick={() => setSelectedCandidateId(isSelected ? "" : String(candidate.studentId))}>
+                        {isSelected ? "Hide analysis" : "View profile"}
+                      </button>
+                    {searchMode === "opportunity" && selectedOpportunity && (
+                      <span style={{ display: "flex", gap: 8 }}>
+                        <Link className="small-ghost" to={`/recruiter?candidateId=${candidate.studentId}&opportunityId=${selectedOpportunity._id}`}>View skill analysis</Link>
+                        <button type="button" onClick={() => shortlistCandidate(candidate)}>Shortlist</button>
+                      </span>
+                    )}
+                    </span>
+                  </span>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         <div className="card">

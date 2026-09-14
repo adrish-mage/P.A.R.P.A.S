@@ -26,7 +26,7 @@ async function acceptInvite(req, res) {
     const membershipId = new mongoose.Types.ObjectId();
     const application = await AffiliationApplication.create({
       applicantUserId: req.user.id,
-      affiliationType: "organisation",
+      affiliationType: invite.affiliationType,
       affiliationId: invite.affiliationId,
       status: "approved",
       approvals: [{ approverUserId: invite.inviterUserId, decision: "approved" }],

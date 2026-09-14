@@ -97,19 +97,37 @@ async function generateGrowthMap({
       targetRoleSkills,
       learningOpportunities: opportunities,
     });
-  const growthMap = await GrowthMap.create({
-    studentId: studentProfile._id,
-    target: {
-      type: "career_role",
-      roleId: careerRole._id,
-      roleName: careerRole.name,
+  const skillGaps = (result.skillGaps || []).map(
+    ({ skillId, currentScore, targetScore, gap, priority }) => ({
+      skillId,
+      currentScore,
+      targetScore,
+      gap,
+      priority,
+    })
+  );
+  const existingGrowthMap = await GrowthMap.findOne({ studentId: studentProfile._id }).select("version").lean();
+  const growthMap = await GrowthMap.findOneAndUpdate(
+    { studentId: studentProfile._id },
+    {
+      $set: {
+        target: {
+          type: "career_role",
+          roleId: careerRole._id,
+          roleName: careerRole.name,
+        },
+        skillGaps,
+        recommendations: result.recommendations || [],
+        generatedAt: new Date(),
+        version: (existingGrowthMap?.version || 0) + 1,
+      },
+      $setOnInsert: {
+        studentId: studentProfile._id,
+        generatedBy: "python-predictive",
+      },
     },
-    skillGaps: result.skillGaps || [],
-    recommendations: result.recommendations || [],
-    generatedBy: "python-predictive",
-    generatedAt: new Date(),
-    version: 1,
-  });
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  );
   return growthMap;
 }
 module.exports = {generateGrowthMap,};

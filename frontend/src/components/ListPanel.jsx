@@ -11,6 +11,7 @@ export default function ListPanel({
   onDelete,
   buildCreatePayload,
   renderItem,
+  sectionId,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export default function ListPanel({
   }
 
   return (
-    <div className="card">
+    <div className="card" id={sectionId || undefined}>
       <h2>{title}</h2>
       {description && <p className="subtitle" style={{ marginBottom: 12 }}>{description}</p>}
       {error && <p style={{ color: "#e05c5c", marginBottom: 12 }}>{error}</p>}

@@ -4,6 +4,8 @@ const skillEntrySchema = new mongoose.Schema(
   {
     skillId: { type: mongoose.Schema.Types.ObjectId, ref: "Skill", required: true },
     score: { type: Number, min: 0, max: 10, default: 0 },
+    source: { type: String, enum: ["self", "training", "project"], default: "self" },
+    source: { type: String, enum: ["self", "training", "project"], default: "self" },
     confidence: { type: Number, min: 0, max: 100, default: 0 },
     evidenceCount: { type: Number, min: 0, default: 0 },
     verifiedEvidenceCount: { type: Number, min: 0, default: 0 },

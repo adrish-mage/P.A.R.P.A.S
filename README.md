@@ -39,6 +39,44 @@ npm run dev
 ```
 Open `http://localhost:5173`.
 
+## Deployment checklist
+
+This repository is demo-ready, but production deployment requires a real
+authentication provider or signed session/token middleware. The current UI
+passes demo identity headers and is suitable for local demonstrations only.
+
+For a hosted demo:
+
+1. Deploy the backend as a Node service with `npm start`.
+2. Set `MONGO_URI` to a reachable MongoDB database.
+3. Set `PORT` from the hosting provider and set `FRONTEND_ORIGIN` to the exact
+	hosted frontend URL. Multiple comma-separated origins are supported.
+4. Keep `DEV_AUTH_BYPASS=false`.
+5. Deploy the frontend as a static Vite site with `npm run build` and set
+	`VITE_API_BASE=https://<backend-host>/api` at build time.
+6. Configure the static host to rewrite unknown routes to `index.html` so
+	React Router paths such as `/portal/tpo` work on refresh.
+
+For a fresh database, run `npm run seed:demo` from `backend` once after setting
+`MONGO_URI`. This creates the demo student dataset and dedicated TPO and
+recruiter professional accounts.
+
+Demo login is passwordless in this prototype. Enter the email in the matching
+role form:
+
+- Student: `aarav.sen@sih-demo.local`
+- TPO Professional: `tpo-demo@parpas.local`
+- Recruiter Professional: `recruiter-demo@parpas.local`
+- Organisation: `placements@universityofcalcutta-demo.example`
+- Institution: `demo.admin@universityofcalcutta.example`
+
+The organisation and institution forms also accept their seeded names and
+codes. These demo identities are intended for controlled demonstrations; real
+deployment should replace header-based demo auth with signed sessions or JWT.
+
+The Python predictive service is optional. Without `PYTHON_PREDICTIVE_BASE`,
+the Node service returns documented fallback responses for predictive features.
+
 ## What to click
 
 1. Landing page → "Get started"

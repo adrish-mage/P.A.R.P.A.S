@@ -33,7 +33,12 @@ const insightsRoutes = require("./routes/insightsRoutes");
 const app = express();
 const authMiddleware = require("./middleware/authMiddleware");
 
-app.use(cors());
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
@@ -72,7 +77,7 @@ app.use("/api/opportunity-shortlist", opportunityShortlistRoutes);
 
 app.use("/api/insights", insightsRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 6767;
 
 connectDB().then(() => {
   app.listen(PORT, () => {

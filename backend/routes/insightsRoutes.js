@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const {skillGap, placementInsights, growthMapRecommend, resumeParse, intelligentMatch,} = require("../controllers/insightsController");
+const { careerRoles, skillGap, opportunitySkillGap, candidateOpportunityMatch, placementInsights, growthMapRecommend, resumeParse, intelligentMatch,} = require("../controllers/insightsController");
+router.get("/career-roles", careerRoles);
 router.post("/skill-gap", skillGap);
+router.post("/opportunity-skill-gap", opportunitySkillGap);
+router.post("/candidate-opportunity-match", candidateOpportunityMatch);
 router.post("/placement", placementInsights);
 router.post("/growth-map-recommend", growthMapRecommend);
 router.post("/resume-parse", resumeParse);

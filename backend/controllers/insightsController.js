@@ -4,6 +4,18 @@ const {generateGrowthMap,} = require("../services/growthMapService");
 const { generatePlacementInsights } = require("../services/placementInsightsService");
 const { parseResume } = require("../services/resumeParseService");
 const { generateIntelligentMatching } = require("../services/intelligentMatchingService");
+const { generateOpportunitySkillGap } = require("../services/opportunitySkillGapService");
+const { generateCandidateOpportunityMatch } = require("../services/candidateOpportunityMatchService");
+const CareerRole = require("../models/CareerRole");
+
+async function careerRoles(req, res) {
+  try {
+    const roles = await CareerRole.find({ isActive: true }).select("_id name code description").sort({ name: 1 }).lean();
+    return res.status(200).json(roles);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
 async function skillGap(req, res) {
   try {
     const { careerRoleId } = req.body;
@@ -18,6 +30,28 @@ async function skillGap(req, res) {
     return res.status(err.statusCode || 500).json({
       message: err.message,
     });
+  }
+}
+
+async function opportunitySkillGap(req, res) {
+  try {
+    const result = await generateOpportunitySkillGap({ userId: req.user.id, opportunityId: req.body.opportunityId });
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+}
+
+async function candidateOpportunityMatch(req, res) {
+  try {
+    const result = await generateCandidateOpportunityMatch({
+      organisationUserId: req.user.id,
+      studentId: req.body.studentId,
+      opportunityId: req.body.opportunityId,
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ message: err.message });
   }
 }
 
@@ -82,4 +116,4 @@ async function growthMapRecommend(req, res) {
   }
 }
 
-module.exports = {skillGap, placementInsights, growthMapRecommend, resumeParse, intelligentMatch,};
+module.exports = { careerRoles, skillGap, opportunitySkillGap, candidateOpportunityMatch, placementInsights, growthMapRecommend, resumeParse, intelligentMatch, };
