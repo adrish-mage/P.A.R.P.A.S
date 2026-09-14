@@ -16,7 +16,7 @@ async function safePost(path, payload, fallback) {
 }
 
 async function getSkillGap(payload) {
-  return safePost("/skill-gap", payload, { missingSkillIds: [], matchScore: 0, note: "Python intelligence service not configured" });
+  return safePost("/skill-gap", payload, {skillGaps: [], matchScore: 0, note: "Python intelligence service not configured",});
 }
 
 async function getPlacementInsights(payload) {
@@ -24,8 +24,7 @@ async function getPlacementInsights(payload) {
 }
 
 async function getGrowthMapRecommendations(payload) {
-  return safePost("/growth-map/recommend", payload, { recommendedSkillIds: [], note: "Python intelligence service not configured" });
-}
+  return safePost("/growth-map/recommend", payload, {skillGaps: [], recommendations: [], note: "Python intelligence service not configured",});}
 
 async function parseDocument(payload) {
   return safePost("/resume-parse", payload, { extractedSkillNames: [], note: "Python intelligence service not configured" });

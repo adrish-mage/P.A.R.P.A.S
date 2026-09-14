@@ -23,20 +23,39 @@ Request:
 
 ```json
 {
-  "studentSkillIds": ["skill-object-id"],
-  "targetRoleSkillIds": ["skill-object-id"]
+  "studentSkills": [
+    {
+      "skillId": "skill-object-id",
+      "score": 7
+    }
+  ],
+  "targetRoleSkills": [
+    {
+      "skillId": "skill-object-id",
+      "targetLevel": 8,
+      "weight": 0.4
+    }
+  ]
 }
-```
 
 Response:
 
 ```json
 {
-  "missingSkillIds": ["skill-object-id"],
-  "matchScore": 0.72,
-  "note": "optional diagnostic"
+  "skillGaps": [
+    {
+      "skillId": "skill-object-id",
+      "currentScore": 7,
+      "targetScore": 8,
+      "gap": 1,
+      "weight": 0.4,
+      "attainment": 0.875,
+      "priority": 0.4
+    }
+  ],
+  "matchScore": 0.7357
 }
-```
+
 
 ### `POST /placement-insights`
 
@@ -62,13 +81,41 @@ Response:
 
 ### `POST /growth-map/recommend`
 
-Request:
+Node assembles the predictive payload from the authenticated student's
+SkillProfile, the selected CareerRole, and currently available
+LearningOpportunity records.
+
+Node → Python request:
 
 ```json
 {
-  "studentId": "user-object-id",
-  "currentSkillIds": ["skill-object-id"],
-  "targetRole": "Backend Engineer"
+  "studentSkills": [
+    {
+      "skillId": "skill-object-id",
+      "score": 7
+    }
+  ],
+  "targetRoleSkills": [
+    {
+      "skillId": "skill-object-id",
+      "targetLevel": 8,
+      "weight": 0.4
+    }
+  ],
+  "learningOpportunities": [
+    {
+      "opportunityId": "learning-opportunity-object-id",
+      "title": "Docker for Developers",
+      "skills": [
+        {
+          "skillId": "skill-object-id",
+          "targetLevel": 7,
+          "required": true,
+          "weight": 1
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -76,8 +123,30 @@ Response:
 
 ```json
 {
-  "recommendedSkillIds": ["skill-object-id"],
-  "note": "optional diagnostic"
+  "skillGaps": [
+    {
+      "skillId": "skill-object-id",
+      "currentScore": 3,
+      "targetScore": 7,
+      "gap": 4,
+      "weight": 0.2,
+      "priority": "high"
+    }
+  ],
+  "recommendations": [
+    {
+      "opportunityId": "learning-opportunity-object-id",
+      "title": "Docker for Developers",
+      "reason": "Addresses the student's current skill gaps in: skill-object-id.",
+      "targetSkills": [
+        {
+          "skillId": "skill-object-id",
+          "expectedImprovement": 4
+        }
+      ],
+      "priority": 80
+    }
+  ]
 }
 ```
 
