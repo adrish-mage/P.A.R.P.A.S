@@ -6,6 +6,7 @@ const InstitutionMembership = require("../models/InstitutionMembership");
 const AffiliationApplication = require("../models/AffiliationApplication");
 const AffiliationInvite = require("../models/AffiliationInvite");
 const User = require("../models/User");
+const SkillProfile = require("../models/SkillProfile");
 
 async function listVerified(req, res) {
   try {
@@ -117,20 +118,97 @@ async function listStudentRequests(req, res) {
     const applications = await AffiliationApplication.find({
       affiliationType: "institution",
       affiliationId: req.params.id,
-      status: { $in: ["pending", "approved"] },
+      status: "pending",
     }).populate("applicantUserId", "name email");
-    const userIds = applications.map((application) => application.applicantUserId?._id).filter(Boolean);
-    const profiles = await StudentProfile.find({ userId: { $in: userIds } }).select("userId institutionLink").lean();
-    const profileByUserId = new Map(profiles.map((profile) => [String(profile.userId), profile]));
-    return res.status(200).json(
-      applications.map((application) => ({
+    const linkedProfiles = await StudentProfile.find({
+      "institutionLink.institutionId": req.params.id,
+      "institutionLink.status": "Linked",
+    }).populate("userId", "name email").lean();
+
+    const studentsByUserId = new Map();
+    for (const profile of linkedProfiles) {
+      if (!profile.userId) continue;
+      studentsByUserId.set(String(profile.userId._id), {
+        _id: profile._id,
+        applicantUserId: profile.userId,
+        studentDetails: profile.institutionLink,
+        status: "approved",
+      });
+    }
+    for (const application of applications) {
+      const userId = application.applicantUserId?._id;
+      if (!userId || studentsByUserId.has(String(userId))) continue;
+      const profile = await StudentProfile.findOne({ userId }).select("institutionLink").lean();
+      if (!profile) continue;
+      studentsByUserId.set(String(userId), {
         ...application.toObject(),
-        studentDetails: profileByUserId.get(String(application.applicantUserId?._id))?.institutionLink || null,
-      }))
-    );
+        studentDetails: profile.institutionLink || null,
+      });
+    }
+
+    return res.status(200).json([...studentsByUserId.values()]);
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
+}
+
+async function getSkillAnalytics(req, res) {
+  try {
+    const students = await StudentProfile.find({
+      "institutionLink.institutionId": req.params.id,
+      "institutionLink.status": "Linked",
+      isActive: true,
+    }).select("_id").lean();
+    const studentIds = students.map((student) => student._id);
+    const profiles = await SkillProfile.find({ studentId: { $in: studentIds } })
+      .populate("skills.skillId", "name category")
+      .select("studentId skills")
+      .lean();
+    const skillStats = new Map();
+    let scoreTotal = 0;
+    let scoreCount = 0;
+
+    for (const profile of profiles) {
+      for (const skill of profile.skills || []) {
+        if (!skill.skillId) continue;
+        const key = String(skill.skillId._id);
+        const current = skillStats.get(key) || {
+          name: skill.skillId.name,
+          category: skill.skillId.category,
+          studentCount: 0,
+          scoreTotal: 0,
+          verifiedEvidence: 0,
+        };
+        current.studentCount += 1;
+        current.scoreTotal += skill.score || 0;
+        current.verifiedEvidence += skill.verifiedEvidenceCount || 0;
+        skillStats.set(key, current);
+        scoreTotal += skill.score || 0;
+        scoreCount += 1;
+      }
+    }
+
+    const skills = [...skillStats.values()]
+      .map((skill) => ({
+        ...skill,
+        averageScore: round(skill.scoreTotal / skill.studentCount, 1),
+      }))
+      .sort((left, right) => right.studentCount - left.studentCount || right.averageScore - left.averageScore || left.name.localeCompare(right.name));
+
+    return res.status(200).json({
+      studentCount: students.length,
+      studentsWithSkills: new Set(profiles.map((profile) => String(profile.studentId))).size,
+      averageScore: scoreCount ? round((scoreTotal / scoreCount) * 10, 1) : 0,
+      skills,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+function round(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
 }
 
 async function decideStudentRequest(req, res) {
@@ -244,6 +322,7 @@ module.exports = {
   verifyInstitution,
   linkStudents,
   listStudentRequests,
+  getSkillAnalytics,
   decideStudentRequest,
   inviteProfessional,
   listLinkedProfessionals,

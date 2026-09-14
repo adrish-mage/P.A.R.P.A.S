@@ -199,13 +199,6 @@ export default function InstitutionPortal() {
           </>
         )}
 
-        <div className="card">
-          <h2>College Analytics · Skill Statistics</h2>
-          <p className="subtitle" style={{ marginBottom: 0 }}>
-            MongoDB aggregation dashboards are not built yet. Wire them against
-            AcademicRecord/SkillProfile once there's a students-by-institution index.
-          </p>
-        </div>
       </div>
     </div>
   );
