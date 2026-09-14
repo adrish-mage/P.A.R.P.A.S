@@ -228,7 +228,7 @@ async function loadDemoData(req, res) {
     }
 
     const additionalOrganisations = [
-      { email: "hiring@technova-demo.example", name: "TechNova Labs", code: "TECHNOVA", industry: "Software platforms", opportunity: { title: "Product Engineering Associate", type: "job", requiredSkills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Node.js._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
+      { email: "hiring@technova-demo.example", name: "TechNova Labs", code: "TECHNOVA", industry: "Software platforms", opportunity: { title: "Product Engineering Associate", type: "job", requiredSkills: [{ skillId: skills.React._id, minScore: 7, required: true, weight: 1 }, { skillId: skills["Node.js"]._id, minScore: 6, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
       { email: "hiring@greengrid-demo.example", name: "GreenGrid Analytics", code: "GREENGRID", industry: "Data and sustainability", opportunity: { title: "Data Systems Fellow", type: "apprenticeship", requiredSkills: [{ skillId: skills.Python._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.SQL._id, minScore: 7, required: true, weight: 1 }, { skillId: skills.Communication._id, minScore: 6, required: false, weight: .4 }] } },
     ];
     for (const item of additionalOrganisations) {
