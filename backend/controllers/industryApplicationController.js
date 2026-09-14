@@ -20,6 +20,25 @@ async function apply(req, res) {
   }
 }
 
+async function sendProposal(req, res) {
+  try {
+    const { industryOpportunityId, candidateId, coverNote } = req.body;
+    const organisation = await Organisation.findOne({ userId: req.user.id, isActive: true });
+    if (!organisation) return res.status(403).json({ message: "Organisation account required" });
+    const opportunity = await IndustryOpportunity.findOne({ _id: industryOpportunityId, organisationId: organisation._id, isActive: true });
+    if (!opportunity) return res.status(404).json({ message: "Organisation opportunity not found" });
+    if (!candidateId || !coverNote?.trim()) return res.status(400).json({ message: "candidateId and proposal message are required" });
+    const application = await IndustryApplication.findOneAndUpdate(
+      { studentId: candidateId, industryOpportunityId: opportunity._id },
+      { $set: { coverNote: coverNote.trim(), status: "UnderReview", reviewedAt: new Date(), reviewNote: "Proposal sent by recruiter" } },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    return res.status(201).json(await application.populate("industryOpportunityId", "title type organisationId"));
+  } catch (err) {
+    return res.status(err.code === 11000 ? 409 : 500).json({ message: err.message });
+  }
+}
+
 async function listMine(req, res) {
   const applications = await IndustryApplication.find({ studentId: req.user.id })
     .populate("industryOpportunityId", "title type applicationDeadline status organisationId")
@@ -68,4 +87,4 @@ async function updateForOrganisation(req, res) {
   return res.status(200).json(application);
 }
 
-module.exports = { apply, listMine, withdraw, listForOrganisation, updateForOrganisation };
+module.exports = { apply, sendProposal, listMine, withdraw, listForOrganisation, updateForOrganisation };

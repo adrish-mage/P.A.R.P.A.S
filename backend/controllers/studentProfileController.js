@@ -9,6 +9,7 @@ const User = require("../models/User");
 const Skill = require("../models/Skill");
 const SkillProfile = require("../models/SkillProfile");
 const Training = require("../models/Training");
+const IndustryExperience = require("../models/IndustryExperience");
 const Project = require("../models/Project");
 const VerificationRequest = require("../models/VerificationRequest");
 const Verification = require("../models/Verification");
@@ -230,6 +231,27 @@ async function loadDemoData(req, res) {
     };
     await student.save();
 
+    await AcademicRecord.findOneAndUpdate(
+      { studentId: student._id, "course.name": "B.Tech Computer Science" },
+      { $set: { studentId: student._id, course: { name: "B.Tech Computer Science", code: "BTECH-CSE", institutionId: demoInstitution._id, type: "college_course" }, performance: { marks: 842, maxMarks: 1000, grade: "A" }, skills: [{ skillId: skills.Python._id, weight: 1 }, { skillId: skills["Node.js"]._id, weight: 1 }, { skillId: skills.SQL._id, weight: .8 }], examDate: new Date("2026-05-20") } },
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    await AcademicRecord.findOneAndUpdate(
+      { studentId: student._id, "course.name": "Applied Data Structures and Algorithms" },
+      { $set: { studentId: student._id, course: { name: "Applied Data Structures and Algorithms", code: "NPTEL-DSA-2026", type: "nptel" }, performance: { marks: 91, maxMarks: 100, grade: "Elite" }, skills: [{ skillId: skills.Python._id, weight: 1 }, { skillId: skills["Node.js"]._id, weight: .8 }, { skillId: skills["Git"]._id, weight: .5 }], examDate: new Date("2026-04-18") } },
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    await Training.findOneAndUpdate(
+      { studentId: student._id, name: "Node.js API Engineering Certificate" },
+      { $setOnInsert: { studentId: student._id, name: "Node.js API Engineering Certificate", description: "Practical training in REST APIs, authentication, validation, and production service design.", provider: { type: "external", externalProviderName: "P.A.R.P.A.S. Demo Academy" }, type: "certification", startedAt: new Date("2026-02-01"), completedAt: new Date("2026-03-10"), skills: [{ skillId: skills["Node.js"]._id }, { skillId: skills["Git"]._id }], certificate: { title: "Node.js API Engineering Certificate", issuer: "P.A.R.P.A.S. Demo Academy", issuedAt: new Date("2026-03-10"), hasAssessment: true, assessmentScore: 92 } } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    await IndustryExperience.findOneAndUpdate(
+      { studentId: student._id, organisationId: organisation._id, role: "Backend Engineering Intern" },
+      { $set: { studentId: student._id, organisationId: organisation._id, type: "internship", role: "Backend Engineering Intern", description: "Built API endpoints, improved validation flows, and supported placement data integrations.", skills: [{ skillId: skills["Node.js"]._id }, { skillId: skills.Python._id }, { skillId: skills.SQL._id }, { skillId: skills.Git._id }], startedAt: new Date("2026-05-01"), endedAt: new Date("2026-08-15"), supervisor: { name: "Ritika Sen", designation: "Engineering Lead" } } },
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+
     const additionalStudents = [
       { email: "priya.nair@eastbridge.example", name: "Priya Nair", institution: "EASTBRIDGE", course: "B.Tech Computer Science", interest: "Frontend engineering and accessible product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["Communication", 8, "self"], ["SQL", 6, "training"]], project: "Accessible Campus Planner" },
       { email: "rohan.mehta@northfield.example", name: "Rohan Mehta", institution: "NORTHFIELD", course: "B.Sc Data Science", interest: "Data platforms and applied analytics", scores: [["Python", 9, "project"], ["SQL", 9, "training"], ["Communication", 7, "self"], ["Node.js", 5, "self"]], project: "Placement Forecasting Studio" },
@@ -257,6 +279,24 @@ async function loadDemoData(req, res) {
         { $setOnInsert: { studentId: additionalStudent._id, title: item.project, description: `${item.project} demonstrates practical delivery and collaboration.`, type: "academic", skills: studentSkills.filter((entry) => entry.source === "project").map((entry) => ({ skillId: entry.skillId })), evidence: [{ type: "link", url: `https://example.com/demo-${item.name.toLowerCase().replace(/\s/g, "-")}-project` }], completedAt: new Date("2026-04-01") } },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+      if (item.institution === "CALCUTTADEMO") {
+        const itemSkills = studentSkills.map((entry) => ({ skillId: entry.skillId }));
+        await AcademicRecord.findOneAndUpdate(
+          { studentId: additionalStudent._id, "course.name": item.course },
+          { $set: { studentId: additionalStudent._id, course: { name: item.course, code: `CALCUTTA-${item.name.replace(/\s/g, "-").toUpperCase()}`, institutionId: institutionRecords.CALCUTTADEMO._id, type: "college_course" }, performance: { grade: "A" }, skills: itemSkills.slice(0, 3), examDate: new Date("2026-05-20") } },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        await Training.findOneAndUpdate(
+          { studentId: additionalStudent._id, name: `${item.name} Full-stack Foundations` },
+          { $setOnInsert: { studentId: additionalStudent._id, name: `${item.name} Full-stack Foundations`, description: "University of Calcutta demo training covering practical delivery, collaboration, and role-aligned technical skills.", provider: { type: "external", externalProviderName: "P.A.R.P.A.S. Demo Academy" }, type: "course", startedAt: new Date("2026-01-15"), completedAt: new Date("2026-03-15"), skills: itemSkills.slice(0, 3), certificate: { title: `${item.name} Full-stack Foundations`, issuer: "P.A.R.P.A.S. Demo Academy", issuedAt: new Date("2026-03-15"), hasAssessment: true, assessmentScore: 86 } } },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        await IndustryExperience.findOneAndUpdate(
+          { studentId: additionalStudent._id, organisationId: organisation._id, role: "Product Engineering Trainee" },
+          { $set: { studentId: additionalStudent._id, organisationId: organisation._id, type: "internship", role: "Product Engineering Trainee", description: `${item.name} contributed to a practical product engineering workstream for the University of Calcutta placement demo.`, skills: itemSkills.slice(0, 3), startedAt: new Date("2026-06-01"), endedAt: new Date("2026-08-31") } },
+          { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+        );
+      }
     }
 
     const additionalOrganisations = [

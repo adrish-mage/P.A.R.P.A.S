@@ -140,6 +140,8 @@ export const api = {
   deleteIndustryOpportunity: (id) => del(`/industry-opportunities/${id}`),
   applyToIndustryOpportunity: (industryOpportunityId, coverNote) =>
     post(`/industry-applications`, { industryOpportunityId, coverNote }),
+  sendJobProposal: (candidateId, industryOpportunityId, coverNote) =>
+    post(`/industry-applications/proposal`, { candidateId, industryOpportunityId, coverNote }),
   listMyIndustryApplications: () => request(`/industry-applications/mine`),
   withdrawIndustryApplication: (id) => put(`/industry-applications/${id}/withdraw`, {}),
   listOrganisationApplications: (opportunityId) =>

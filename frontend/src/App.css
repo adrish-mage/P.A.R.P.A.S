@@ -349,6 +349,8 @@ input, select, textarea {
 
 @media (max-width: 760px) {
   .analytics-shell, .skill-detail-shell { width: min(100% - 28px, 620px); }.wire-header, .recruiter-view .wire-header { grid-template-columns: 1fr; text-align: left; }.wire-header > div { justify-content: space-between; }.wire-year { text-align: left; }.wire-toolbar, .recruiter-toolbar { grid-template-columns: 1fr; border-radius: 14px; }.metric-grid, .recommendation-grid, .landscape-grid, .evidence-strip { grid-template-columns: 1fr 1fr; }.match-layout, .detail-columns { grid-template-columns: 1fr; }.match-score { border-right: 0; border-bottom: 1px solid #555; }.match-row { grid-template-columns: 1.2fr 1fr 1fr 28px; }.match-row i { display: none; }.match-row span:nth-of-type(1) { display: none; }.evidence-tabs { grid-template-columns: 1fr 1fr; }.detail-heading { align-items: flex-start; flex-direction: column; gap: 14px; }.detail-heading > div:last-child { text-align: left; }.relevance-area { border-left: 0; border-top: 1px solid #ddd; padding: 14px 0 0; }.audit-row { grid-template-columns: 1fr; gap: 6px; }
+  .readonly-candidate-header, .readonly-record-grid { grid-template-columns: 1fr; }
+  .candidate-profile-heading { align-items: flex-start; flex-direction: column; }
 }
 
 /* Product entry surfaces */
@@ -483,6 +485,25 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #b8ddd3; border-c
 .student-status.ready { color: var(--signal); background: var(--signal-soft); }.student-status.on-track { color: #8b641f; background: #fff3dc; }.student-status.needs-support { color: #a15135; background: #fbe9e1; }
 .student-result-detail { display: grid; align-content: start; gap: 7px; }.student-result-detail h3 { margin: 6px 0 0; font-family: Georgia, serif; font-size: 1.45rem; font-weight: 400; }.student-result-detail p { margin: 0 0 10px; color: var(--muted); font-size: .78rem; }.student-result-detail > strong { color: var(--signal); font-family: Georgia, serif; font-size: 2.8rem; font-weight: 400; line-height: 1; }.student-result-detail > span { color: var(--muted); font-size: .7rem; }.student-result-detail > div { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid var(--line); font-size: .76rem; }.student-result-detail > div span { color: var(--signal); }
 .match-layout { border-color: var(--line); }
+.candidate-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.candidate-profile-panel, .job-proposal-panel { display: grid; gap: 10px; margin: 18px 0; padding: 20px; border: 1px solid var(--line); background: var(--panel); }
+.candidate-profile-panel h2, .job-proposal-panel h2 { margin: 0; font-family: Georgia, serif; font-weight: 400; }
+.candidate-profile-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.candidate-profile-panel p, .job-proposal-panel p { margin: 0; color: var(--muted); }
+.job-proposal-panel textarea { width: 100%; resize: vertical; }
+.proposal-notice { color: var(--signal) !important; }
+.readonly-candidate-header, .readonly-section, .readonly-record-section { margin-top: 20px; padding: 24px; border: 1px solid var(--line); background: var(--panel); }
+.readonly-candidate-header { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.readonly-candidate-header h1 { margin: 6px 0 8px; font-family: Georgia, serif; font-weight: 400; }
+.readonly-candidate-header p, .readonly-candidate-meta span, .readonly-record-section > p { color: var(--muted); }
+.readonly-candidate-meta { display: grid; gap: 14px; }
+.readonly-candidate-meta span { display: grid; gap: 4px; }
+.readonly-candidate-meta strong { color: var(--ink); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.readonly-skill-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.readonly-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+.readonly-record-section h2 { margin: 0 0 14px; font-family: Georgia, serif; font-weight: 400; }
+.readonly-record { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); }
+.readonly-record span { color: var(--muted); font-size: .82rem; }
 .match-score { border-color: var(--line); }
 .match-score > strong { font-family: Georgia, serif; font-weight: 400; }
 .match-score h3 { border-color: var(--line); }
@@ -568,6 +589,40 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #b8ddd3; border-c
 .growth-timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 22px 0 26px; }.growth-milestone { position: relative; min-height: 120px; padding-right: 18px; }.growth-milestone::before { content: ""; position: absolute; top: 28px; left: 25px; right: -1px; height: 2px; background: #cbded5; }.growth-milestone:last-child::before { display: none; }.growth-milestone > span { position: relative; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; border: 2px solid var(--signal); border-radius: 50%; background: #f8fbf9; color: var(--signal); font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-size: .68rem; font-weight: 700; }.growth-milestone > div { margin-top: 12px; }.growth-milestone strong { font-size: .95rem; }.growth-milestone p { margin: 5px 0 0; color: var(--muted); font-size: .75rem; line-height: 1.45; }.recommendation-list { display: grid; gap: 9px; }.recommendation-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e4ece7; }.recommendation-row span { display: grid; gap: 4px; }.recommendation-row small { color: var(--muted); font-size: .72rem; }.recommendation-row b { align-self: start; color: var(--signal); font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-size: .68rem; text-transform: uppercase; white-space: nowrap; }
 .match-dashboard-row { display: grid; grid-template-columns: 1fr 64px minmax(140px, .7fr); align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #e4ece7; }.match-dashboard-row > div { display: grid; gap: 4px; }.match-dashboard-row span { color: var(--muted); font-size: .72rem; }.match-dashboard-row > b { color: var(--signal); font-family: Georgia, serif; font-size: 1.35rem; font-weight: 400; }.match-dashboard-row em { color: #a15135; font-size: .72rem; font-style: normal; }.match-skill-options { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }.match-skill-options span { padding: 4px 7px; border-radius: 999px; font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-size: .64rem; }.match-skill-good { color: var(--signal) !important; background: var(--signal-soft); }.match-skill-gap { color: #a15135 !important; background: #fbe9e1; }
 .parse-summary { display: grid; gap: 6px; margin-top: 16px; padding: 15px; border: 1px solid #d5e3dc; border-radius: 6px; background: #f1f6f3; }.parse-summary > span { color: var(--muted); font-size: .78rem; }.parse-summary > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }.parse-summary > div span { padding: 5px 8px; border-radius: 999px; background: var(--signal-soft); color: var(--signal); font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-size: .7rem; }
+
+.auth-simple .auth-form .btn-secondary {
+  background: #e9eeeb;
+  color: #17232b;
+}
+
+.auth-simple .auth-form .btn-secondary:hover {
+  background: #dce6e1;
+  color: #17232b;
+}
+
+.recruiter-view .match-row.selected {
+  background: var(--signal);
+  color: #fff;
+}
+
+.recruiter-view .match-row.selected span,
+.recruiter-view .match-row.selected span b,
+.recruiter-view .match-row.selected i,
+.recruiter-view .match-row.selected .positive,
+.recruiter-view .match-row.selected .negative {
+  color: #fff;
+}
+
+.skill-detail-page .related-skills button,
+.skill-detail-page .relevance-area button {
+  color: var(--ink);
+}
+
+.skill-detail-page .related-skills button:hover,
+.skill-detail-page .relevance-area button:hover {
+  background: var(--signal);
+  color: #fff;
+}
 
 @media (max-width: 520px) {
   .auth-simple .auth-roles { grid-template-columns: 1fr; }
