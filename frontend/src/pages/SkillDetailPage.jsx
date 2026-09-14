@@ -29,7 +29,7 @@ const details = {
 
 export default function SkillDetailPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { location } = useLocation();
   const { skillName = "python" } = useParams();
   const [params] = useSearchParams();
   const [candidate, setCandidate] = useState(null);
@@ -72,7 +72,6 @@ export default function SkillDetailPage() {
   return (
     <div className="skill-detail-page">
       <div className="skill-detail-shell">
-        <button type="button" className="skill-back-link" onClick={() => navigate(-1)}>← Back to {previousLabel}</button>
         <h1>Detailed view of a <span>single</span> skill</h1>
         <section className="detail-frame">
           <header className="detail-heading"><div><h2>{skill.name}</h2><p>{candidate ? `${candidate.name} · ${candidate.institution?.name || "Institution not linked"}` : skill.domain}</p></div><div><span>Stage</span><strong>{displayStage}</strong><span>Candidate score</span><b>{candidateSkill ? `${candidateSkill.score}/10` : "Not selected"}</b></div></header>

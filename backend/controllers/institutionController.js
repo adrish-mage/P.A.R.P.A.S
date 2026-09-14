@@ -9,9 +9,20 @@ const User = require("../models/User");
 
 async function listVerified(req, res) {
   try {
-    const list = await Institution.find({ isVerified: true, isActive: true })
+    const records = await Institution.find({ isVerified: true, isActive: true })
       .select("name code isVerified")
       .sort({ name: 1 });
+    const hasCalcuttaDemo = records.some((institution) => institution.code === "CALCUTTADEMO");
+    const visibleRecords = hasCalcuttaDemo
+      ? records.filter((institution) => institution.code === "CALCUTTADEMO" || !institution.name.toLowerCase().includes("calcutta"))
+      : records;
+    const list = [...visibleRecords]
+      .sort((left, right) => {
+        const leftIsDemo = left.code === "CALCUTTADEMO";
+        const rightIsDemo = right.code === "CALCUTTADEMO";
+        return Number(rightIsDemo) - Number(leftIsDemo);
+      })
+      .filter((institution, index, all) => all.findIndex((candidate) => candidate.name.trim().toLowerCase() === institution.name.trim().toLowerCase()) === index);
     return res.status(200).json(list);
   } catch (err) {
     return res.status(500).json({ message: err.message });

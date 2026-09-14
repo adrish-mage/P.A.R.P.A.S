@@ -1,6 +1,10 @@
 const StudentProfile = require("../models/StudentProfile");
 const Institution = require("../models/Institution");
 const AffiliationApplication = require("../models/AffiliationApplication");
+const AffiliationInvite = require("../models/AffiliationInvite");
+const AcademicRecord = require("../models/AcademicRecord");
+const InstitutionMembership = require("../models/InstitutionMembership");
+const ProfessionalProfile = require("../models/ProfessionalProfile");
 const User = require("../models/User");
 const Skill = require("../models/Skill");
 const SkillProfile = require("../models/SkillProfile");
@@ -191,12 +195,40 @@ async function loadDemoData(req, res) {
         { $setOnInsert: { name: `${item.name} Demo Admin`, email: item.email, accountType: "institution", onboardingStatus: "in_progress" } },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      institutionRecords[item.code] = await Institution.findOneAndUpdate(
-        { userId: institutionUser._id },
-        { $setOnInsert: { userId: institutionUser._id, name: item.name, code: item.code, emailDomain: item.emailDomain, isVerified: true, isActive: true } },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+      const matchingInstitutions = await Institution.find({ code: item.code }).sort({ createdAt: 1, _id: 1 });
+      let institution = matchingInstitutions.find((record) => String(record.userId) === String(institutionUser._id)) || matchingInstitutions[0];
+      if (!institution) {
+        institution = await Institution.create({ userId: institutionUser._id, name: item.name, code: item.code, emailDomain: item.emailDomain, isVerified: true, isActive: true });
+      } else {
+        institution.name = item.name;
+        institution.emailDomain = item.emailDomain;
+        institution.isVerified = true;
+        institution.isActive = true;
+        await institution.save();
+      }
+
+      for (const duplicate of matchingInstitutions.filter((record) => String(record._id) !== String(institution._id))) {
+        await StudentProfile.updateMany({ "institutionLink.institutionId": duplicate._id }, { $set: { "institutionLink.institutionId": institution._id } });
+        await AcademicRecord.updateMany({ "course.institutionId": duplicate._id }, { $set: { "course.institutionId": institution._id } });
+        await InstitutionMembership.updateMany({ institutionId: duplicate._id }, { $set: { institutionId: institution._id } });
+        await AffiliationApplication.updateMany({ affiliationType: "institution", affiliationId: duplicate._id }, { $set: { affiliationId: institution._id } });
+        await AffiliationInvite.updateMany({ affiliationType: "institution", affiliationId: duplicate._id }, { $set: { affiliationId: institution._id } });
+        await ProfessionalProfile.updateMany({ linkedEntityType: "institution", linkedEntityId: duplicate._id }, { $set: { linkedEntityId: institution._id } });
+        await Institution.deleteOne({ _id: duplicate._id });
+      }
+      institutionRecords[item.code] = institution;
     }
+
+    const demoInstitution = institutionRecords.CALCUTTADEMO;
+    student.institutionLink = {
+      institutionId: demoInstitution._id,
+      status: "Linked",
+      rollNo: "DEMO-CALCUTTADEMO",
+      enrollmentId: "ENR-CALCUTTADEMO-AARAVSEN",
+      course: "B.Tech Computer Science",
+      admissionYear: 2023,
+    };
+    await student.save();
 
     const additionalStudents = [
       { email: "priya.nair@eastbridge.example", name: "Priya Nair", institution: "EASTBRIDGE", course: "B.Tech Computer Science", interest: "Frontend engineering and accessible product design", scores: [["React", 9, "project"], ["Git", 8, "training"], ["Communication", 8, "self"], ["SQL", 6, "training"]], project: "Accessible Campus Planner" },

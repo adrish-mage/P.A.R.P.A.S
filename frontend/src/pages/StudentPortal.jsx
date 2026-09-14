@@ -9,23 +9,7 @@ export default function StudentPortal() {
   const userId = getUserId();
   const [backendStatus, setBackendStatus] = useState("checking");
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [demoNotice, setDemoNotice] = useState("");
   const [autoLoadedDemo, setAutoLoadedDemo] = useState(false);
-
-  async function loadDemoData() {
-    setDemoLoading(true);
-    setDemoNotice("");
-    try {
-      const result = await api.loadStudentDemoData();
-      setDemoNotice(result.message);
-      setProfileRefreshKey((value) => value + 1);
-    } catch (err) {
-      setDemoNotice(err.message);
-    } finally {
-      setDemoLoading(false);
-    }
-  }
 
   useEffect(() => {
     api
@@ -46,7 +30,6 @@ export default function StudentPortal() {
       })
       .then((result) => {
         if (!result || cancelled) return;
-        setDemoNotice(result.message || "Aarav Sen demo profile loaded.");
         setProfileRefreshKey((value) => value + 1);
         setAutoLoadedDemo(true);
       })
@@ -76,11 +59,6 @@ export default function StudentPortal() {
       <div className="container">
         <Link to="/auth" className="back-link" onClick={clearSession}>← Sign out</Link>
         <h1>Student Portal</h1>
-        <div className="demo-toolbar">
-          <div><strong>Demo profile</strong><span>Load one complete student record with sourced skills, a course certificate, and a verified project.</span></div>
-          <button onClick={loadDemoData} disabled={demoLoading}>{demoLoading ? "Loading demo..." : "Load demo student"}</button>
-        </div>
-        {demoNotice && <p className="demo-notice">{demoNotice}</p>}
         <StudentOverview key={profileRefreshKey} userId={userId} />
         <p className="subtitle">
           Backend:{" "}
@@ -380,10 +358,6 @@ function StudentOverview({ userId }) {
             </div>
           ) : <p className="profile-empty">No verified projects yet.</p>}
         </div>
-        <div className="profile-overview-actions">
-          <a className="btn" href="#skill-profile">Add skill</a>
-          <a className="btn btn-secondary" href="#projects">Add project</a>
-        </div>
       </div>
     </div>
   );
@@ -440,7 +414,7 @@ function IndustryOpportunitySection({ userId }) {
       <h2>Internships and opportunities</h2>
       <p className="subtitle">Opportunities are matched using the skills in your Skill Profile.</p>
       {error && <p style={{ color: "#e05c5c" }}>{error}</p>}
-      <div className="grid">
+      <div className="grid opportunity-filters">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, organisation, or description" />
         <select value={type} onChange={(event) => setType(event.target.value)}>
           <option value="all">All types</option>
@@ -450,7 +424,7 @@ function IndustryOpportunitySection({ userId }) {
           <option value="live_project">Live project</option>
           <option value="challenge">Challenge</option>
         </select>
-        <label>
+        <label className="opportunity-match-filter">
           <input type="checkbox" checked={matchedOnly} onChange={(event) => setMatchedOnly(event.target.checked)} />
           Matched to my skills
         </label>
@@ -543,7 +517,7 @@ function InstitutionRequestSection({ userId }) {
             <option value="">Select verified institution</option>
             {institutions.map((institution) => (
               <option key={institution._id} value={institution._id}>
-                {institution.name} · {institution.accreditationId}
+                {institution.name}
               </option>
             ))}
           </select>
